@@ -10,7 +10,7 @@ Add-Type @"
 $foregroundWindow = [User32]::GetForegroundWindow()
 if ($foregroundWindow -ne [IntPtr]::Zero) {
   $foregroundPID = (Get-Process | Where-Object { $_.MainWindowHandle -eq $foregroundWindow }).Id
-  Write-Host "$foregroundPID."
+  Write-Host "$foregroundPID"
 } else {
   Write-Host "Could not get the handle of the foreground window."
 }

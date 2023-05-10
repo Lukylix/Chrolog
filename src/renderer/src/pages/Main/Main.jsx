@@ -9,8 +9,9 @@ const convertSeconds = (seconds) => {
   let hours = Math.floor(seconds / 3600)
   let minutes = Math.floor((seconds % 3600) / 60)
   let remainingSeconds = seconds % 60
+  if (!hours && !minutes) return `${remainingSeconds}s`
   if (!hours) return `${minutes}min ${remainingSeconds}s`
-  if (!minutes) return ` ${remainingSeconds}s`
+  if (!minutes) return `${hours}h ${remainingSeconds}s`
   return `${hours}h ${minutes}min ${remainingSeconds}s`
 }
 
@@ -32,15 +33,20 @@ const Main = () => {
   const loadData = async () => {
     const trackingData = await ipcRenderer.invoke('load-data')
     setTrackingData(trackingData)
+    processes.find((process) => {
+      if (trackingData[process.name] && !trackedApps.find((app) => app.name === process.name))
+        setTrackedApps((prevTrackedApps) => [...prevTrackedApps, process])
+    })
   }
 
   const saveData = (trackingData) => {
+    if (Object.keys(trackingData).length === 0) return
     ipcRenderer.invoke('save-data', trackingData)
   }
 
   useEffect(() => {
     loadData()
-  }, [])
+  }, [processes])
 
   useEffect(() => {
     let intervalId
@@ -67,19 +73,18 @@ const Main = () => {
     const intervalId = setInterval(async () => {
       const activeApp = await ipcRenderer.invoke('get-active-app')
       console.log('activeApp', activeApp)
-      const trackedAppPids = trackedApps.map((app) => app.name).join(' ')
 
-      if (!trackedAppPids.includes(activeApp)) return
+      const trackedApp = trackedApps.find((app) => app.name === activeApp)
 
-      trackedApps.forEach((app) => {
-        setTrackingData((prevData) => {
-          const elapsedTime = prevData[app.name] || 0
-          const newData = { ...prevData, [app.name]: elapsedTime + 1000 }
+      if (!trackedApp) return
 
-          saveData(newData) // save data through ipcRenderer
+      setTrackingData((prevData) => {
+        const elapsedTime = prevData[trackedApp.name] || 0
+        const newData = { ...prevData, [trackedApp.name]: elapsedTime + 1000 }
 
-          return newData
-        })
+        saveData(newData) // save data through ipcRenderer
+
+        return newData
       })
     }, 1000)
 
@@ -90,6 +95,10 @@ const Main = () => {
       setIsTracking(false)
     })
   }
+
+  useEffect(() => {
+    handleTrack()
+  }, [processes])
 
   ipcRenderer.on('window-closed', () => {
     setIsTracking(false)
@@ -139,7 +148,7 @@ const Main = () => {
             <div className="feature-item">
               <article>
                 <p>{`Tracking: ${trackedApps.map((app) => app.name).join(', ')}`}</p>
-                <p>{`Total Time: ${convertSeconds(trackingTime)} seconds`}</p>
+                <p>{`Total Time: ${convertSeconds(trackingTime)}`}</p>
               </article>
             </div>
 
@@ -147,9 +156,7 @@ const Main = () => {
               const app = { name: appKey, time: trackingData[appKey] }
               return (
                 <div key={i} className="feature-item">
-                  <article>{`${app.name}: ${convertSeconds(
-                    Math.round(app.time / 1000)
-                  )} seconds`}</article>
+                  <article>{`${app.name}: ${convertSeconds(Math.round(app.time / 1000))}`}</article>
                 </div>
               )
             })}

@@ -5,8 +5,7 @@ import icon from '../../resources/icon.png?asset'
 import ffi from '@lwahonen/ffi-napi'
 import ref from '@lwahonen/ref-napi'
 import { Database } from 'sqlite3'
-const db = new Database('tracking.db')
-
+const db = new Database('tracking.sqlite')
 
 const MAX_PATH = 260
 const PROCESS_QUERY_INFORMATION = 0x0400
@@ -85,9 +84,7 @@ function createWindow() {
     const hwnd = user32.GetForegroundWindow()
     const processId = ref.alloc('uint32')
     user32.GetWindowThreadProcessId(hwnd, processId)
-    console.log('processId', processId.deref())
     const hProcess = kernel32.OpenProcess(PROCESS_QUERY_INFORMATION, false, processId.deref())
-    console.log('hProcess', hProcess)
     if (hProcess) {
       const buffer = Buffer.alloc(MAX_PATH)
       const size = psapi.GetModuleFileNameExA(hProcess, 0, buffer, MAX_PATH)
@@ -106,74 +103,100 @@ function createWindow() {
       const processId = ref.alloc('uint32')
       user32.GetWindowThreadProcessId(hwnd, processId)
 
-      let hProcess
-      if (processId.deref() !== 0) {
-        // Check if the process ID corresponds to an actual process
-        const snapshot = kernel32.CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0)
-        const entry = Buffer.alloc(PROCESSENTRY32_SIZE)
-        entry.writeUInt32LE(PROCESSENTRY32_SIZE, 0)
-        let found = false
-        if (kernel32.Process32First(snapshot, entry)) {
-          do {
-            const entryProcessId = entry.readUInt32LE(8)
-            if (entryProcessId === processId.deref()) {
-              found = true
+      if (processId.deref() === 0) return 1
 
-              break
-            }
-          } while (kernel32.Process32Next(snapshot, entry))
-        }
+      const snapshot = kernel32.CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0)
+      const entry = Buffer.alloc(PROCESSENTRY32_SIZE)
+      entry.writeUInt32LE(PROCESSENTRY32_SIZE, 0)
+
+      if (!kernel32.Process32First(snapshot, entry)) {
         kernel32.CloseHandle(snapshot)
-        if (found) {
-          hProcess = kernel32.OpenProcess(
-            PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,
-            false,
-            processId.deref()
-          )
-        }
+        return 1
       }
-      if (hProcess) {
-        const buffer = Buffer.alloc(MAX_PATH)
 
-        const size = psapi.GetModuleFileNameExA(hProcess, 0, buffer, MAX_PATH)
-        // let size = 0
-        if (size > 0) {
-          const processName = buffer.toString('utf8', 0, size).split('\\').pop()
-          const image = nativeImage.createFromPath(processName)
-          if (!processes.find((p) => p.name === processName)) {
-            processes.push({ pid: processId.deref(), name: processName, image: image.toDataURL() })
+      do {
+        if (entry.readUInt32LE(8) === processId.deref()) {
+          const hProcess = kernel32.OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, false, processId.deref())
+
+          if (hProcess) {
+            const buffer = Buffer.alloc(MAX_PATH)
+            const size = psapi.GetModuleFileNameExA(hProcess, 0, buffer, MAX_PATH)
+
+            if (size > 0) {
+              const processName = buffer.toString('utf8', 0, size).split('\\').pop()
+              const image = nativeImage.createFromPath(processName)
+
+              if (!processes.find((p) => p.name === processName)) {
+                processes.push({ pid: processId.deref(), name: processName, image: image.toDataURL() })
+              }
+            }
+
+            kernel32.CloseHandle(hProcess)
           }
+
+          break
         }
-        kernel32.CloseHandle(hProcess)
-      }
+      } while (kernel32.Process32Next(snapshot, entry))
+
+      kernel32.CloseHandle(snapshot)
       return 1
     })
-    user32.EnumWindows(EnumWindowsProc, 0)
 
+    user32.EnumWindows(EnumWindowsProc, 0)
     return processes
   })
+
   ipcMain.handle('save-data', (event, trackingData) => {
     db.run("CREATE TABLE if not exists tracking_data (name TEXT, elapsedTime INTEGER)")
-    const stmt = db.prepare('REPLACE INTO tracking_data (name, elapsedTime) VALUES (?, ?)');
-    Object.entries(trackingData).forEach(([name, elapsedTime]) => {
-      stmt.run(name, elapsedTime)
-    })
-  })
+
+    const selectSql = `SELECT * FROM tracking_data WHERE name = ?`;
+    const updateSql = `UPDATE tracking_data SET elapsedTime = ? WHERE name = ?`;
+    const insertSql = `INSERT INTO tracking_data (name, elapsedTime) VALUES (?, ?)`;
+
+    for (const name in trackingData) {
+      const elapsedTime = trackingData[name];
+
+      db.get(selectSql, [name], function (err, row) {
+        if (err)
+          return console.error(err.message);
+
+
+        if (row) {
+          db.run(updateSql, [elapsedTime, name], function (err) {
+            if (err)
+              return console.error(err.message);
+
+          });
+        } else {
+          db.run(insertSql, [name, elapsedTime], function (err) {
+            if (err)
+              return console.error(err.message);
+
+          });
+        }
+      });
+    }
+  });
+
 
   // Handle 'load-data' from renderer
-  ipcMain.handle('load-data', () => {
-    db.run("CREATE TABLE if not exists tracking_data (name TEXT, elapsedTime INTEGER)")
-    const rows = db.prepare('SELECT * FROM tracking_data').all()
-    if (Object.keys(rows).length === 0) return {}
-    const trackingData = {}
-    for (const rowKey in rows) {
-      const row = rows[rowKey]
-      trackingData[rowKey] = row.elapsedTime
-    }
-
-
-    return trackingData
-
+  ipcMain.handle('load-data', (event) => {
+    return new Promise((resolve, reject) => {
+      let trackingData = {};
+      db.serialize(() => {
+        db.run("CREATE TABLE if not exists tracking_data (name TEXT, elapsedTime INTEGER)");
+        db.all('SELECT * FROM tracking_data', (err, rows) => {
+          if (err) {
+            reject(err);
+          } else {
+            rows.forEach(row => {
+              trackingData[row.name] = row.elapsedTime;
+            });
+            resolve(trackingData);
+          }
+        });
+      });
+    });
   })
 
   let intervalId = null
