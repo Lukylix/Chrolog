@@ -4,10 +4,24 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   main: {
-    plugins: [externalizeDepsPlugin()]
+    plugins: [externalizeDepsPlugin()],
+    build: {
+      rollupOptions: {
+        external: ['@lwahonen/ffi-napi', '@lwahonen/ref-napi', 'node-gyp', 'sqlite3']
+      },
+      asar: false
+    }
   },
   preload: {
-    plugins: [externalizeDepsPlugin()]
+    plugins: [externalizeDepsPlugin()],
+    build: {
+      rollupOptions: {
+        rollupOptions: {
+          external: ['@lwahonen/ffi-napi', '@lwahonen/ref-napi', 'node-gyp', 'sqlite3']
+        }
+      },
+      asar: false
+    }
   },
   renderer: {
     resolve: {
@@ -15,6 +29,16 @@ export default defineConfig({
         '@renderer': resolve('src/renderer/src')
       }
     },
-    plugins: [react()]
+    build: {
+      rollupOptions: {
+        external: "sqlite3"
+      }
+    },
+    plugins: [react()],
+    webPreferences: {
+      nodeIntegration: true,
+      enableRemoteModule: true,
+      contextIsolation: false
+    }
   }
 })

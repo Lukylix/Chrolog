@@ -1,0 +1,115 @@
+.dropdown-container {
+  width: 200px;
+  display: inline-block;
+  margin-right: 15px;
+}
+.dropdown-container > * {
+  width: 200px;
+  max-width: 100%;
+}
+
+.input-container {
+  width: 100%;
+}
+
+.input-container i {
+  color: white;
+  position: absolute;
+  right: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+input[list] {
+  background-color: #e7e7e7;
+  border: none;
+  border-radius: 5px;
+  width: 100%;
+  padding: 10px;
+}
+
+input[list]:focus {
+  border-radius: 5px 5px 0 0;
+  outline: none;
+}
+
+input[list]:focus + i {
+  transform: translateY(-50%) rotate(180deg);
+}
+
+input[list]::-webkit-input-placeholder {
+  color: white;
+}
+
+/* Remove arrow */
+input[list]::-webkit-calendar-picker-indicator {
+  display: none !important;
+}
+
+input[list] {
+  background-color: #3282f7;
+}
+
+.datalist {
+  background-color: #3282f7;
+  color: white;
+  position: absolute;
+  width: 100%;
+  border-radius: 0px 0px 5px 5px;
+  z-index: 10;
+  max-height: 350px;
+  min-height: 35px;
+  overflow-y: scroll;
+}
+
+.datalist::-webkit-scrollbar {
+  width: 5px;
+}
+
+.datalist::-webkit-scrollbar-thumb {
+  background: #a1a7b4;
+  border-radius: 5px 0 0 5px;
+}
+
+.dropdown-container.active .datalist {
+  grid-template-columns: repeat(3, 1fr);
+}
+.dropdown-container.active.w30 .datalist {
+  grid-template-columns: repeat(3, 1fr);
+}
+.dropdown-container.active.w20 .datalist {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.datalist option {
+  cursor: pointer;
+  padding: 5px 10px;
+  width: 100%;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.datalist {
+  display: none;
+}
+
+.tags .tag {
+  display: inline-block;
+  height: 50px;
+  line-height: 50px;
+  border-radius: 5px;
+  padding: 0 10px;
+  margin: 0 10px 10px 0;
+  color: white;
+}
+
+.tags .tag i {
+  position: absolute;
+  top: 50%;
+  right: 20px;
+  transform: translateY(-50%);
+  font-size: 25px;
+  cursor: pointer;
+}

@@ -1,0 +1,22 @@
+button {
+  background-color: #3282f7;
+  border: none;
+  border-radius: 5px;
+  padding: 10px;
+  color: white;
+  font-weight: bold;
+}
+
+section.header {
+  display: flex;
+  gap: 20px;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  margin-bottom: 20px;
+}

@@ -11,13 +11,14 @@ An Electron application with React
 ### Install
 
 ```bash
-$ npm install
+npm install
+sudo systemctl restart systemd-binfmt
 ```
 
 ### Development
 
 ```bash
-$ npm run dev
+ npm run dev
 ```
 
 ### Build
@@ -32,3 +33,5 @@ $ npm run build:mac
 # For Linux
 $ npm run build:linux
 ```
+
+npx electron-rebuild -f -w better-sqlite3
