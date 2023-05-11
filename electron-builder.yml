@@ -1,5 +1,5 @@
 appId: com.electron.app
-productName: time-tracker
+productName: chrolog
 directories:
   buildResources: build
 files:
@@ -12,7 +12,7 @@ asarUnpack:
   - resources/**
 afterSign: build/notarize.js
 win:
-  executableName: time-tracker
+  executableName: chrolog
 nsis:
   artifactName: ${name}-${version}-setup.${ext}
   shortcutName: ${productName}
