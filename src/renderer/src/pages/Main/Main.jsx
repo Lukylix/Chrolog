@@ -242,56 +242,61 @@ const Main = () => {
             )}
           </div>
           <div className="features">
-            <div className="feature-item project-settings">
-              <section className="project-header">
-                <h3>Add Project</h3>
-                <input
-                  onChange={(e) => setCurrentProject(e.target.value)}
-                  type="text"
-                  placeholder="Project Name"
-                />
+            <div className="feature-item ">
+              <div className="project-settings">
+                <section className="project-header">
+                  <h3>Add Project</h3>
+                  <input
+                    onChange={(e) => setCurrentProject(e.target.value)}
+                    type="text"
+                    placeholder="Project Name"
+                  />
 
-                <DataList
-                  data={processes}
-                  dataKey="name"
-                  placeholder="Select apps to track ..."
-                  setSelecteds={setTrackedApps}
-                  onChange={setInputValue}
-                  renderItem={(process, i, { onClick }) => {
-                    return (
-                      <div key={i}>
-                        {process.icon && <img src={process.icon} alt={process.name} />}
-                        <option
-                          onClick={() => onClick(process)}
-                          style={{
-                            display: process?.name?.toLowerCase().includes(inputValue.toLowerCase())
-                              ? 'block'
-                              : 'none'
-                          }}
-                        >
-                          {process.name}
-                        </option>
-                      </div>
-                    )
+                  <DataList
+                    data={processes}
+                    dataKey="name"
+                    placeholder="Select apps to track ..."
+                    setSelecteds={setTrackedApps}
+                    onChange={setInputValue}
+                    renderItem={(process, i, { onClick }) => {
+                      return (
+                        <div key={i}>
+                          {process.icon && <img src={process.icon} alt={process.name} />}
+                          <option
+                            onClick={() => onClick(process)}
+                            style={{
+                              display: process?.name
+                                ?.toLowerCase()
+                                .includes(inputValue.toLowerCase())
+                                ? 'block'
+                                : 'none'
+                            }}
+                          >
+                            {process.name}
+                          </option>
+                        </div>
+                      )
+                    }}
+                  />
+                </section>
+                <button
+                  onClick={() => {
+                    if (!currentProject) return alert('Please enter a project name')
+                    if (trackedApps.length === 0) return alert('Please select an app')
+                    handleCreateProject(currentProject, trackedApps)
                   }}
-                />
-                <div className="app-list">
-                  {trackedApps.map((app, i) => (
-                    <span key={i} className="app-item">
-                      {app.name}
-                    </span>
-                  ))}
-                </div>
-              </section>
-              <button
-                onClick={() => {
-                  if (!currentProject) return alert('Please enter a project name')
-                  if (trackedApps.length === 0) return alert('Please select an app')
-                  handleCreateProject(currentProject, trackedApps)
-                }}
-              >
-                Create Project
-              </button>
+                >
+                  Create Project
+                </button>
+              </div>
+              <div className="app-list">
+                {trackedApps.map((app, i) => (
+                  <span key={i}>
+                    {app.name}
+                    {trackedApps.length - 1 > i && ', '}
+                  </span>
+                ))}
+              </div>
             </div>
 
             {Object.keys(trackingData).map((projectKey, i) => {
