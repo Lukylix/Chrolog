@@ -13,7 +13,9 @@ const io = new Server(2356, {
   }
 })
 
-const db = new Database('tracking.sqlite')
+const appDataPath = app.getPath('appData')
+const dbPath = join(appDataPath, 'Chrolog', 'tracking.sqlite')
+const db = new Database(dbPath)
 
 const MAX_PATH = 260
 const PROCESS_QUERY_INFORMATION = 0x0400
