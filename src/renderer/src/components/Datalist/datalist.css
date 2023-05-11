@@ -1,11 +1,6 @@
 .dropdown-container {
-  width: 200px;
+  width: 100%;
   display: inline-block;
-  margin-right: 15px;
-}
-.dropdown-container > * {
-  width: 200px;
-  max-width: 100%;
 }
 
 .input-container {
@@ -55,31 +50,30 @@ input[list] {
   background-color: #3282f7;
   color: white;
   position: absolute;
-  width: 100%;
+  max-width: 100%;
   border-radius: 0px 0px 5px 5px;
   z-index: 10;
   max-height: 350px;
   min-height: 35px;
   overflow-y: scroll;
-}
-
-.datalist::-webkit-scrollbar {
-  width: 5px;
+  border-radius: 5px;
+  margin-top: 10px;
+  padding: 10px;
+  box-sizing: border-box;
 }
 
 .datalist::-webkit-scrollbar-thumb {
-  background: #a1a7b4;
+  width: 5px;
+  background: #313131;
   border-radius: 5px 0 0 5px;
 }
-
-.dropdown-container.active .datalist {
-  grid-template-columns: repeat(3, 1fr);
+.datalist::-webkit-scrollbar {
+  height: 5px;
+  width: 5px;
+  border-radius: 5px;
 }
-.dropdown-container.active.w30 .datalist {
-  grid-template-columns: repeat(3, 1fr);
-}
-.dropdown-container.active.w20 .datalist {
-  grid-template-columns: repeat(2, 1fr);
+.da .dropdown-container.active .datalist {
+  grid-template-columns: 1fr;
 }
 
 .datalist option {

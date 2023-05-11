@@ -5,6 +5,14 @@ import icon from '../../resources/icon.png?asset'
 import ffi from '@lwahonen/ffi-napi'
 import ref from '@lwahonen/ref-napi'
 import { Database } from 'sqlite3'
+import { Server } from 'socket.io'
+
+const io = new Server(2356, {
+  cors: {
+    origin: '*'
+  }
+})
+
 const db = new Database('tracking.sqlite')
 
 const MAX_PATH = 260
@@ -35,8 +43,69 @@ const user32 = new ffi.Library('user32', {
   GetForegroundWindow: ['int32', []],
   GetWindowTextA: ['long', ['long', stringPtr, 'long']],
   GetWindowThreadProcessId: ['uint32', ['int32', 'pointer']],
-  EnumWindows: ['int', [voidPtr, 'int32']]
+  EnumWindows: ['int', [voidPtr, 'int32']],
+  SetWindowsHookExA: ['int', ['int', 'pointer', 'int', 'int']],
+  CallNextHookEx: ['int', ['long', 'int', 'long', 'long']],
+  UnhookWindowsHookEx: ['bool', ['int']]
 })
+const WH_KEYBOARD_LL = 13
+const WH_MOUSE_LL = 14
+
+let keyboardHookProc = ffi.Callback(
+  'long',
+  ['int', 'long', 'long'],
+  function (code, wParam, lParam) {
+    io.to('input_events').emit('keyboard_event', { wParam, lParam })
+    return user32.CallNextHookEx(0, code, wParam, lParam)
+  }
+)
+
+let lastMouseEventTime = Date.now()
+
+let mouseHookProc = ffi.Callback('long', ['int', 'long', 'long'], function (code, wParam, lParam) {
+  let currentTime = Date.now()
+
+  if (currentTime - lastMouseEventTime > 100) {
+    io.to('input_events').emit('mouse_event', { wParam, lParam })
+    lastMouseEventTime = currentTime
+  }
+  return user32.CallNextHookEx(0, code, wParam, lParam)
+})
+
+let hKeyboardHook, hMouseHook
+
+// Server-side
+io.on('connection', function (socket) {
+  console.log('a user connected')
+  if (!hKeyboardHook) {
+    hKeyboardHook = user32.SetWindowsHookExA(WH_KEYBOARD_LL, keyboardHookProc, 0, 0)
+    if (hKeyboardHook === 0) {
+      throw new Error('SetWindowsHookExA for keyboard failed')
+    }
+  }
+
+  if (!hMouseHook) {
+    hMouseHook = user32.SetWindowsHookExA(WH_MOUSE_LL, mouseHookProc, 0, 0)
+    if (hMouseHook === 0) {
+      throw new Error('SetWindowsHookExA for mouse failed')
+    }
+  }
+
+  socket.on('join_room', function (room) {
+    console.log('user joined room', room)
+    socket.join(room)
+    socket.emit('room_joined', `You have joined room ${room}`)
+  })
+})
+
+function run(query, params = []) {
+  return new Promise((resolve, reject) => {
+    db.run(query, params, function (err) {
+      if (err) return reject(err)
+      resolve(this)
+    })
+  })
+}
 
 function createWindow() {
   // Create the browser window.
@@ -116,7 +185,11 @@ function createWindow() {
 
       do {
         if (entry.readUInt32LE(8) === processId.deref()) {
-          const hProcess = kernel32.OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, false, processId.deref())
+          const hProcess = kernel32.OpenProcess(
+            PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,
+            false,
+            processId.deref()
+          )
 
           if (hProcess) {
             const buffer = Buffer.alloc(MAX_PATH)
@@ -127,7 +200,11 @@ function createWindow() {
               const image = nativeImage.createFromPath(processName)
 
               if (!processes.find((p) => p.name === processName)) {
-                processes.push({ pid: processId.deref(), name: processName, image: image.toDataURL() })
+                processes.push({
+                  pid: processId.deref(),
+                  name: processName,
+                  image: image.toDataURL()
+                })
               }
             }
 
@@ -146,57 +223,175 @@ function createWindow() {
     return processes
   })
 
-  ipcMain.handle('save-data', (event, trackingData) => {
-    db.run("CREATE TABLE if not exists tracking_data (name TEXT, elapsedTime INTEGER)")
+  ipcMain.handle('save-data', async (event, trackingData) => {
+    // Create table for project data if it doesn't exist
+    await run(
+      'CREATE TABLE if not exists project_data (name TEXT, toggled BOOLEAN, elapsedTime INTEGER, startDate INTEGER, endDate INTEGER)'
+    )
 
-    const selectSql = `SELECT * FROM tracking_data WHERE name = ?`;
-    const updateSql = `UPDATE tracking_data SET elapsedTime = ? WHERE name = ?`;
-    const insertSql = `INSERT INTO tracking_data (name, elapsedTime) VALUES (?, ?)`;
+    // Create table for app data if it doesn't exist
+    await run(
+      'CREATE TABLE if not exists app_data (projectName TEXT, appName TEXT, icon TEXT, pid INTEGER)'
+    )
 
-    for (const name in trackingData) {
-      const elapsedTime = trackingData[name];
+    // Create table for tracking data if it doesn't exist
+    await run(
+      'CREATE TABLE if not exists tracking_data (projectName TEXT, appName TEXT, elapsedTime INTEGER, startDate INTEGER, endDate INTEGER)'
+    )
 
-      db.get(selectSql, [name], function (err, row) {
-        if (err)
-          return console.error(err.message);
+    const selectProjectSql = `SELECT * FROM project_data WHERE name = ?`
+    const updateProjectSql = `UPDATE project_data SET toggled = ?, elapsedTime = ?, startDate = ?, endDate = ? WHERE name = ?`
+    const insertProjectSql = `INSERT INTO project_data (name, toggled, elapsedTime, startDate, endDate) VALUES (?, ?, ?, ?, ?)`
 
+    const selectAppSql = `SELECT * FROM app_data WHERE projectName = ? AND appName = ?`
+    const insertAppSql = `INSERT INTO app_data (projectName, appName, icon, pid) VALUES (?, ?, ?, ?)`
+
+    const selectTrackingSql = `SELECT * FROM tracking_data WHERE projectName = ? AND appName = ?`
+    const updateTrackingSql = `UPDATE tracking_data SET elapsedTime = ?, startDate = ?, endDate = ? WHERE projectName = ? AND appName = ?`
+    const insertTrackingSql = `INSERT INTO tracking_data (projectName, appName, elapsedTime, startDate, endDate) VALUES (?, ?, ?, ?, ?)`
+
+    for (const projectName of Object.keys(trackingData)) {
+      const { toggled, elapsedTime, startDate, endDate, apps, trackingLogs } =
+        trackingData[projectName]
+
+      db.get(selectProjectSql, [projectName], async function (err, row) {
+        if (err) return console.error(err.message)
 
         if (row) {
-          db.run(updateSql, [elapsedTime, name], function (err) {
-            if (err)
-              return console.error(err.message);
-
-          });
+          await run(
+            updateProjectSql,
+            [toggled, elapsedTime, startDate, endDate, projectName],
+            function (err) {
+              if (err) return console.error(err.message)
+            }
+          )
         } else {
-          db.run(insertSql, [name, elapsedTime], function (err) {
-            if (err)
-              return console.error(err.message);
-
-          });
+          await run(
+            insertProjectSql,
+            [projectName, toggled, elapsedTime, startDate, endDate],
+            function (err) {
+              if (err) return console.error(err.message)
+            }
+          )
         }
-      });
-    }
-  });
+      })
 
+      // Iterate over apps
+      if (!apps?.length) continue
+      for (const app of apps) {
+        const { name: appName, icon, pid } = app
+
+        db.get(selectAppSql, [projectName, appName], async function (err, row) {
+          if (err) return console.error(err.message)
+
+          if (!row) {
+            await run(insertAppSql, [projectName, appName, icon, pid], function (err) {
+              if (err) return console.error(err.message)
+            })
+          }
+        })
+      }
+
+      // Iterate over trackingLogs
+      if (!trackingLogs?.length) continue
+      for (const trackingLog of trackingLogs) {
+        const {
+          name: appName,
+          elapsedTime: appElapsedTime,
+          startDate: appStartDate,
+          endDate: appEndDate
+        } = trackingLog
+
+        db.get(selectTrackingSql, [projectName, appName], async function (err, row) {
+          if (err) return console.error(err.message)
+
+          if (row) {
+            await run(
+              updateTrackingSql,
+              [appElapsedTime, appStartDate, appEndDate, projectName, appName],
+              function (err) {
+                if (err) return console.error(err.message)
+              }
+            )
+          } else {
+            await run(
+              insertTrackingSql,
+              [projectName, appName, appElapsedTime, appStartDate, appEndDate],
+              function (err) {
+                if (err) return console.error(err.message)
+              }
+            )
+          }
+        })
+      }
+    }
+  })
 
   // Handle 'load-data' from renderer
-  ipcMain.handle('load-data', (event) => {
+  ipcMain.handle('load-data', () => {
     return new Promise((resolve, reject) => {
-      let trackingData = {};
-      db.serialize(() => {
-        db.run("CREATE TABLE if not exists tracking_data (name TEXT, elapsedTime INTEGER)");
-        db.all('SELECT * FROM tracking_data', (err, rows) => {
-          if (err) {
-            reject(err);
-          } else {
-            rows.forEach(row => {
-              trackingData[row.name] = row.elapsedTime;
-            });
-            resolve(trackingData);
-          }
-        });
-      });
-    });
+      let trackingData = {}
+      db.serialize(async () => {
+        // Load project data
+        await run(
+          'CREATE TABLE if not exists project_data (name TEXT, toggled BOOLEAN, elapsedTime INTEGER, startDate INTEGER, endDate INTEGER)'
+        )
+        db.all('SELECT * FROM project_data', async (err, projectRows) => {
+          if (err) return reject(err)
+
+          projectRows.forEach((projectRow) => {
+            if (!projectRow.name) return
+            trackingData[projectRow.name] = {
+              toggled: projectRow.toggled,
+              elapsedTime: projectRow.elapsedTime,
+              startDate: projectRow.startDate,
+              endDate: projectRow.endDate,
+              trackingLogs: [],
+              apps: []
+            }
+          })
+
+          // Load app data
+          await run(
+            'CREATE TABLE if not exists app_data (projectName TEXT, appName TEXT, icon TEXT, pid INTEGER)'
+          )
+          db.all('SELECT * FROM app_data', async (err, appRows) => {
+            if (err) return reject(err)
+
+            appRows.forEach((appRow) => {
+              if (trackingData[appRow.projectName]) {
+                trackingData[appRow.projectName].apps.push({
+                  name: appRow.appName,
+                  icon: appRow.icon,
+                  pid: appRow.pid
+                })
+              }
+            })
+
+            // Load tracking data
+            await run(
+              'CREATE TABLE if not exists tracking_data (projectName TEXT, appName TEXT, elapsedTime INTEGER, startDate INTEGER, endDate INTEGER)'
+            )
+            db.all('SELECT * FROM tracking_data', (err, trackingRows) => {
+              if (err) return reject(err)
+
+              trackingRows.forEach((trackingRow) => {
+                if (trackingData[trackingRow.projectName]) {
+                  trackingData[trackingRow.projectName].trackingLogs.push({
+                    name: trackingRow.appName,
+                    elapsedTime: trackingRow.elapsedTime,
+                    startDate: trackingRow.startDate,
+                    endDate: trackingRow.endDate
+                  })
+                }
+              })
+
+              resolve(trackingData)
+            })
+          })
+        })
+      })
+    })
   })
 
   let intervalId = null

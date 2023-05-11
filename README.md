@@ -1,6 +1,10 @@
-# time-tracker
+# Chrolog - A automated time tracking tool
 
-An Electron application with React
+This monitoring software recognizes actions through keyboard strokes and mouse movements, subsequently recording the time associated with each project.
+
+Check the release page for binary files.
+
+![ScreenShot](./Screenshot.png)
 
 ## Recommended IDE Setup
 
@@ -8,30 +12,15 @@ An Electron application with React
 
 ## Project Setup
 
-### Install
-
-```bash
-npm install
-sudo systemctl restart systemd-binfmt
-```
-
 ### Development
 
 ```bash
- npm run dev
+npm install
+npm run dev
 ```
 
 ### Build
 
 ```bash
-# For windows
 $ npm run build:win
-
-# For macOS
-$ npm run build:mac
-
-# For Linux
-$ npm run build:linux
 ```
-
-npx electron-rebuild -f -w better-sqlite3

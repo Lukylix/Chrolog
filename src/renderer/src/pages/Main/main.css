@@ -1,3 +1,167 @@
+body {
+  display: flex;
+  flex-direction: column;
+  font-family: Roboto, -apple-system, BlinkMacSystemFont, 'Helvetica Neue', 'Segoe UI', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Open Sans', sans-serif;
+  color: #86a5b1;
+  background-color: #2f3241;
+}
+
+* {
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
+  position: relative;
+}
+
+ul {
+  list-style: none;
+}
+
+code {
+  font-weight: 600;
+  padding: 3px 5px;
+  border-radius: 2px;
+  background-color: #26282e;
+  font-family: ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace;
+  font-size: 85%;
+}
+
+a {
+  color: #9feaf9;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  outline: none;
+}
+
+a:hover {
+  border-bottom: 1px solid;
+}
+
+.container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  margin: 0 auto;
+  padding: 15px 30px 0 30px;
+}
+
+.links {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 24px;
+  font-size: 18px;
+  font-weight: 500;
+}
+
+.links a {
+  font-weight: 500;
+}
+
+.links .link-item {
+  padding: 0 4px;
+}
+
+.features {
+  display: flex;
+  flex-direction: column;
+
+  margin: -6px;
+}
+
+.features .feature-item {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 6px;
+  margin-top: 20px;
+}
+
+.project-settings {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+}
+
+.project-settings {
+  width: max-content;
+}
+
+.project-header {
+  display: inline-grid;
+  grid-template-columns: auto 1fr 1fr auto;
+  gap: 30px;
+  align-items: center;
+  justify-content: center;
+}
+.project-header > * {
+  justify-self: center;
+  margin: 0;
+}
+
+.project-header button {
+  justify-self: end;
+}
+
+.app-item {
+  display: inline-block;
+  height: 50px;
+  line-height: 50px;
+  border-radius: 5px;
+  padding: 0 10px;
+  margin: 0 10px 10px 0;
+  color: white;
+  background-color: #3282f7;
+}
+
+input {
+  background-color: #e7e7e7;
+  border: none;
+  border-radius: 5px;
+  width: 100%;
+  padding: 10px;
+  font-weight: bold;
+}
+.features > .feature-item {
+  background-color: rgba(194, 245, 255, 0.1);
+  border-radius: 8px;
+  box-sizing: border-box;
+  padding: 12px;
+  height: 100%;
+}
+
+.features span {
+  color: #d4e8ef;
+  word-break: break-all;
+}
+
+.features .title {
+  font-size: 17px;
+  font-weight: 500;
+  color: #c2f5ff;
+  line-height: 22px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.features .detail {
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 22px;
+  margin-top: 6px;
+}
+
+.d-inline {
+  display: inline-flex;
+  align-items: center;
+}
+
+.space-between {
+  justify-content: space-between;
+}
+
 button {
   background-color: #3282f7;
   border: none;
@@ -5,18 +169,79 @@ button {
   padding: 10px;
   color: white;
   font-weight: bold;
+  width: fit-content;
+  margin: 10px 0 10px 0;
 }
 
+.bg-green {
+  background-color: #1aa68a;
+}
+.bg-red {
+  background-color: #f3696c;
+}
 section.header {
   display: flex;
   gap: 20px;
 }
 
-h1,
-h2,
-h3,
-h4,
-h5,
-h6 {
-  margin-bottom: 20px;
+.project-line {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 20px;
+}
+
+.project-line > * {
+  align-self: center;
+  margin: 0;
+  display: inline-block;
+  vertical-align: middle;
+}
+.project {
+  display: grid;
+  grid-template-columns: 1fr auto;
+}
+
+.project p {
+  align-self: center;
+}
+
+.ellipsis {
+  white-space: nowrap; /* This prevents the text from wrapping onto the next line */
+  overflow: hidden; /* This will hide the text that doesn't fit */
+  text-overflow: ellipsis;
+}
+
+.red-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: #f3696c;
+  margin-left: 10px;
+}
+
+.green-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: #1aa68a;
+  margin-left: 10px;
+  justify-self: center;
+}
+
+@media (max-width: 480px) {
+  .links {
+    flex-direction: column;
+    line-height: 32px;
+  }
+
+  .links .link-dot {
+    display: none;
+  }
+
+  .features .feature-item {
+    width: 100%;
+  }
 }
