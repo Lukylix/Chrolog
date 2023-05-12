@@ -1,0 +1,61 @@
+.project-settings {
+  display: flex;
+  width: 100%;
+  justify-content: space-between;
+}
+
+.project-header {
+  display: inline-grid;
+  grid-template-columns: auto 1fr 1fr auto;
+  gap: 30px;
+  align-items: center;
+  justify-content: center;
+  width: max-content;
+}
+.project-header > * {
+  justify-self: center;
+  margin: 0;
+}
+
+.project-header button {
+  justify-self: end;
+}
+
+.app-item {
+  display: inline-block;
+  height: 50px;
+  line-height: 50px;
+  border-radius: 5px;
+  padding: 0 10px;
+  margin: 0 10px 10px 0;
+  color: white;
+  background-color: #3282f7;
+}
+
+section.header {
+  display: flex;
+  gap: 20px;
+}
+
+.project-line {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 20px;
+}
+
+.project-line > * {
+  align-self: center;
+  margin: 0;
+  display: inline-block;
+  vertical-align: middle;
+}
+.project {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 20px;
+}
+
+.project > * {
+  align-self: center;
+}

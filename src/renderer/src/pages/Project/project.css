@@ -1,0 +1,35 @@
+.event-bars {
+  height: 50px;
+  display: flex;
+  margin-block: 10px;
+  background-color: #2f3241;
+  border-radius: 5px;
+}
+
+.event-bars .event-bar {
+  height: 100%;
+  border-radius: 5px;
+}
+
+.project {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 20px;
+}
+
+.tracked-app {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.tracked-app .app-color {
+  width: 10px;
+  height: 40px;
+  border-radius: 5px;
+  margin-block: 5px;
+}
+
+.tracked-app .app-end {
+  margin-left: auto;
+}

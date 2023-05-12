@@ -168,8 +168,10 @@ function createWindow() {
     }
     return null
   })
-
+  let lastProcessFetchTime = 0
   ipcMain.handle('get-windows-with-icons', async () => {
+    if (lastProcessFetchTime + 1000 > Date.now()) return
+    lastProcessFetchTime = Date.now()
     const EnumWindowsProc = ffi.Callback('int', ['long', 'int32'], (hwnd) => {
       const processId = ref.alloc('uint32')
       user32.GetWindowThreadProcessId(hwnd, processId)

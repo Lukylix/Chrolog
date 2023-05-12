@@ -4,7 +4,8 @@ This monitoring software recognizes actions through keyboard strokes and mouse m
 
 Check the release page for binary files.
 
-![ScreenShot](./Screenshot.png)
+![Main Page](./Main.png)
+![Project Details](./ProjectEdit.png)
 
 ## Recommended IDE Setup
 
