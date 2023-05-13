@@ -12,10 +12,13 @@ export default function Header() {
   const close = () => ipcRenderer.send('close-event')
 
   return (
-    <nav className="header">
-      <Minimize fill="white" onClick={minimize} style={{ transform: 'translateY(-2px)' }} />
-      <Maximize fill="#3282f7" onClick={maximize} />
-      <Close fill="#f3696c" onClick={close} />
-    </nav>
+    <div className="header">
+      <div className="dragable"></div>
+      <nav className="nav">
+        <Minimize fill="white" onClick={minimize} style={{ transform: 'translateY(-2px)' }} />
+        <Maximize fill="#3282f7" onClick={maximize} />
+        <Close fill="#f3696c" onClick={close} />
+      </nav>
+    </div>
   )
 }

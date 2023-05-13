@@ -1,11 +1,22 @@
-.header {
+.nav {
   display: flex;
   width: min-content;
   justify-content: flex-end;
-  width: 100%;
+  width: min-content;
   gap: 5px;
-  -webkit-app-region: drag;
   padding: 5px 5px 0 0;
   text-align: center;
   align-items: center;
+}
+
+.header {
+  display: grid;
+  grid-template-columns: 1fr auto;
+}
+
+.dragable {
+  -webkit-app-region: drag;
+  -webkit-user-select: none;
+
+  height: 30px;
 }
