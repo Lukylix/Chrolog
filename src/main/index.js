@@ -108,6 +108,10 @@ function run(query, params = []) {
     })
   })
 }
+const timeoutPromise = (timeout) =>
+  new Promise((resolve) => {
+    setTimeout(() => resolve(true), timeout)
+  })
 
 function createWindow() {
   // Create the browser window.
@@ -172,7 +176,9 @@ function createWindow() {
   ipcMain.handle('get-windows-with-icons', async () => {
     if (lastProcessFetchTime + 1000 > Date.now()) return
     lastProcessFetchTime = Date.now()
-    const EnumWindowsProc = ffi.Callback('int', ['long', 'int32'], (hwnd) => {
+
+
+    const EnumWindowsProc = ffi.Callback('int', ['long', 'int32'], async (hwnd) => {
       const processId = ref.alloc('uint32')
       user32.GetWindowThreadProcessId(hwnd, processId)
 
@@ -188,6 +194,7 @@ function createWindow() {
       }
 
       do {
+        await timeoutPromise(50)
         if (entry.readUInt32LE(8) === processId.deref()) {
           const hProcess = kernel32.OpenProcess(
             PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,
