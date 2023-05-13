@@ -135,6 +135,109 @@ function createWindow() {
   } else {
     mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
   }
+  ipcMain.on('save-data', async (event, trackingData) => {
+    // Create table for project data if it doesn't exist
+    await run(
+      'CREATE TABLE if not exists project_data (name TEXT, toggled BOOLEAN, elapsedTime INTEGER, startDate INTEGER, endDate INTEGER)'
+    )
+
+    // Create table for app data if it doesn't exist
+    await run(
+      'CREATE TABLE if not exists app_data (projectName TEXT, appName TEXT, icon TEXT, pid INTEGER)'
+    )
+
+    // Create table for tracking data if it doesn't exist
+    await run(
+      'CREATE TABLE if not exists tracking_data (projectName TEXT, appName TEXT, elapsedTime INTEGER, startDate INTEGER, endDate INTEGER)'
+    )
+
+    const selectProjectSql = `SELECT * FROM project_data WHERE name = ?`
+    const updateProjectSql = `UPDATE project_data SET toggled = ?, elapsedTime = ?, startDate = ?, endDate = ? WHERE name = ?`
+    const insertProjectSql = `INSERT INTO project_data (name, toggled, elapsedTime, startDate, endDate) VALUES (?, ?, ?, ?, ?)`
+
+    const selectAppSql = `SELECT * FROM app_data WHERE projectName = ? AND appName = ?`
+    const insertAppSql = `INSERT INTO app_data (projectName, appName, icon, pid) VALUES (?, ?, ?, ?)`
+
+    const selectTrackingSql = `SELECT * FROM tracking_data WHERE projectName = ? AND appName = ?`
+    const updateTrackingSql = `UPDATE tracking_data SET elapsedTime = ?, startDate = ?, endDate = ? WHERE projectName = ? AND appName = ?`
+    const insertTrackingSql = `INSERT INTO tracking_data (projectName, appName, elapsedTime, startDate, endDate) VALUES (?, ?, ?, ?, ?)`
+
+    for (const projectName of Object.keys(trackingData)) {
+      const { toggled, elapsedTime, startDate, endDate, apps, trackingLogs } =
+        trackingData[projectName]
+
+      db.get(selectProjectSql, [projectName], async function (err, row) {
+        if (err) return console.error(err.message)
+
+        if (row) {
+          await run(
+            updateProjectSql,
+            [toggled, elapsedTime, startDate, endDate, projectName],
+            function (err) {
+              if (err) return console.error(err.message)
+            }
+          )
+        } else {
+          await run(
+            insertProjectSql,
+            [projectName, toggled, elapsedTime, startDate, endDate],
+            function (err) {
+              if (err) return console.error(err.message)
+            }
+          )
+        }
+      })
+
+      // Iterate over apps
+      if (!apps?.length) continue
+      for (const app of apps) {
+        const { name: appName, icon, pid } = app
+
+        db.get(selectAppSql, [projectName, appName], async function (err, row) {
+          if (err) return console.error(err.message)
+
+          if (!row) {
+            await run(insertAppSql, [projectName, appName, icon, pid], function (err) {
+              if (err) return console.error(err.message)
+            })
+          }
+        })
+      }
+
+      // Iterate over trackingLogs
+      if (!trackingLogs?.length) continue
+      for (const trackingLog of trackingLogs) {
+        const {
+          name: appName,
+          elapsedTime: appElapsedTime,
+          startDate: appStartDate,
+          endDate: appEndDate
+        } = trackingLog
+
+        db.get(selectTrackingSql, [projectName, appName], async function (err, row) {
+          if (err) return console.error(err.message)
+
+          if (row) {
+            await run(
+              updateTrackingSql,
+              [appElapsedTime, appStartDate, appEndDate, projectName, appName],
+              function (err) {
+                if (err) return console.error(err.message)
+              }
+            )
+          } else {
+            await run(
+              insertTrackingSql,
+              [projectName, appName, appElapsedTime, appStartDate, appEndDate],
+              function (err) {
+                if (err) return console.error(err.message)
+              }
+            )
+          }
+        })
+      }
+    }
+  })
 
   // Opens the developer tools when F12 is pressed
   mainWindow.webContents.on('before-input-event', (event, input) => {
@@ -269,109 +372,7 @@ function createWindow() {
     return processCount
   })
 
-  ipcMain.on('save-data', async (event, trackingData) => {
-    // Create table for project data if it doesn't exist
-    await run(
-      'CREATE TABLE if not exists project_data (name TEXT, toggled BOOLEAN, elapsedTime INTEGER, startDate INTEGER, endDate INTEGER)'
-    )
 
-    // Create table for app data if it doesn't exist
-    await run(
-      'CREATE TABLE if not exists app_data (projectName TEXT, appName TEXT, icon TEXT, pid INTEGER)'
-    )
-
-    // Create table for tracking data if it doesn't exist
-    await run(
-      'CREATE TABLE if not exists tracking_data (projectName TEXT, appName TEXT, elapsedTime INTEGER, startDate INTEGER, endDate INTEGER)'
-    )
-
-    const selectProjectSql = `SELECT * FROM project_data WHERE name = ?`
-    const updateProjectSql = `UPDATE project_data SET toggled = ?, elapsedTime = ?, startDate = ?, endDate = ? WHERE name = ?`
-    const insertProjectSql = `INSERT INTO project_data (name, toggled, elapsedTime, startDate, endDate) VALUES (?, ?, ?, ?, ?)`
-
-    const selectAppSql = `SELECT * FROM app_data WHERE projectName = ? AND appName = ?`
-    const insertAppSql = `INSERT INTO app_data (projectName, appName, icon, pid) VALUES (?, ?, ?, ?)`
-
-    const selectTrackingSql = `SELECT * FROM tracking_data WHERE projectName = ? AND appName = ?`
-    const updateTrackingSql = `UPDATE tracking_data SET elapsedTime = ?, startDate = ?, endDate = ? WHERE projectName = ? AND appName = ?`
-    const insertTrackingSql = `INSERT INTO tracking_data (projectName, appName, elapsedTime, startDate, endDate) VALUES (?, ?, ?, ?, ?)`
-
-    for (const projectName of Object.keys(trackingData)) {
-      const { toggled, elapsedTime, startDate, endDate, apps, trackingLogs } =
-        trackingData[projectName]
-
-      db.get(selectProjectSql, [projectName], async function (err, row) {
-        if (err) return console.error(err.message)
-
-        if (row) {
-          await run(
-            updateProjectSql,
-            [toggled, elapsedTime, startDate, endDate, projectName],
-            function (err) {
-              if (err) return console.error(err.message)
-            }
-          )
-        } else {
-          await run(
-            insertProjectSql,
-            [projectName, toggled, elapsedTime, startDate, endDate],
-            function (err) {
-              if (err) return console.error(err.message)
-            }
-          )
-        }
-      })
-
-      // Iterate over apps
-      if (!apps?.length) continue
-      for (const app of apps) {
-        const { name: appName, icon, pid } = app
-
-        db.get(selectAppSql, [projectName, appName], async function (err, row) {
-          if (err) return console.error(err.message)
-
-          if (!row) {
-            await run(insertAppSql, [projectName, appName, icon, pid], function (err) {
-              if (err) return console.error(err.message)
-            })
-          }
-        })
-      }
-
-      // Iterate over trackingLogs
-      if (!trackingLogs?.length) continue
-      for (const trackingLog of trackingLogs) {
-        const {
-          name: appName,
-          elapsedTime: appElapsedTime,
-          startDate: appStartDate,
-          endDate: appEndDate
-        } = trackingLog
-
-        db.get(selectTrackingSql, [projectName, appName], async function (err, row) {
-          if (err) return console.error(err.message)
-
-          if (row) {
-            await run(
-              updateTrackingSql,
-              [appElapsedTime, appStartDate, appEndDate, projectName, appName],
-              function (err) {
-                if (err) return console.error(err.message)
-              }
-            )
-          } else {
-            await run(
-              insertTrackingSql,
-              [projectName, appName, appElapsedTime, appStartDate, appEndDate],
-              function (err) {
-                if (err) return console.error(err.message)
-              }
-            )
-          }
-        })
-      }
-    }
-  })
 
   // Handle 'load-data' from renderer
   ipcMain.handle('load-data', () => {

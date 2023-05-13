@@ -113,7 +113,7 @@ const Home = () => {
                         {
                           <span
                             className={`${
-                              Date.now() - lastInputTime > 10000 && project.toggled
+                              Date.now() - lastInputTime > 10000 && project.toggled && isTracking
                                 ? 'red-dot'
                                 : 'green-dot'
                             }`}
@@ -138,7 +138,7 @@ const Home = () => {
                               saveData(trackingData)
                             }
                           }}
-                          className={!project?.toggled || !isTracking ? 'bg-red' : 'bg-green'}
+                          className={project?.toggled ? 'bg-red' : 'bg-green'}
                         >
                           Toggle {project?.toggled ? 'Off' : 'On'}
                         </button>

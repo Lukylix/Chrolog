@@ -63,7 +63,7 @@ const useTracking = () => {
   const saveData = (trackingData) => {
     if (Object.keys(trackingData).length === 0) return
     console.log('saving data: ', trackingData)
-    ipcRenderer.invoke('save-data', trackingData)
+    ipcRenderer.send('save-data', trackingData)
   }
 
   const getProcesses = async () => {
