@@ -2,12 +2,13 @@ import { useParams } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import { stopTracking, toggleProject } from '../../stores/trackingData.js'
 import { setTrackedApps, setCurrentProject } from '../../stores/tracking.js'
-import Header from '../../components/Header/Header.jsx'
+import HeaderTracking from '../../components/HeaderTracking/Headertracking.jsx'
 import { DataList } from '../../components/Datalist/DataList.jsx'
 import { useEffect, useMemo, useState } from 'react'
 import useTracking from '../../hooks/useTracking.js'
 
 import './project.css'
+import Loader from '../../components/Loader/Loader.jsx'
 
 const convertMs = (ms) => {
   isNaN(ms) && (ms = 0)
@@ -123,122 +124,123 @@ export default function Project() {
   const dispatch = useDispatch()
 
   return (
-    <div className="container">
-      {!isReady ? (
-        <p>Loading...</p>
-      ) : (
-        <>
-          <Header />
-          <div className="features">
-            <div className="feature-item ">
-              <div className="project-settings">
-                <section className="project-header">
-                  <h3>Project</h3>
-                  <input
-                    onChange={(e) => dispatch(setCurrentProject(e.target.value))}
-                    type="text"
-                    placeholder="Project Name"
-                    value={currentProject}
-                  />
-
-                  <DataList
-                    data={processes}
-                    dataKey="name"
-                    placeholder="Select apps to track ..."
-                    onChange={setInputValue}
-                    setSelecteds={(selecteds) => dispatch(setTrackedApps(selecteds(trackedApps)))}
-                    renderItem={(process, i, { onClick }) => {
-                      return (
-                        <div key={i}>
-                          {process.icon && <img src={process.icon} alt={process.name} />}
-                          <option
-                            onClick={() => onClick(process)}
-                            style={{
-                              display: process.name.includes(inputValue.toLowerCase())
-                                ? 'block'
-                                : 'none'
-                            }}
-                          >
-                            {process.name}
-                          </option>
-                        </div>
-                      )
-                    }}
-                  />
-                </section>
-                <button
-                  onClick={() => {
-                    if (!currentProject) return alert('Please enter a project name')
-                    if (trackedApps.length === 0) return alert('Please select an app')
-                    handleCreateProject(currentProject, trackedApps)
-                  }}
-                >
-                  {currentProject == name ? 'Modify' : 'Create'}
-                </button>
-              </div>
-              {project && (
-                <div className="feature-item project-line">
-                  <h3 className="ellipsis">
-                    {
-                      <span
-                        className={`${
-                          Date.now() - lastInputTime > 10000 && project.toggled
-                            ? 'red-dot'
-                            : 'green-dot'
-                        }`}
-                      ></span>
-                    }
-                    {`${name} - ${convertMs(project.elapsedTime)}`}
-                  </h3>
-                  <div className="project" style={{ gridTemplateColumns: '1fr auto' }}>
-                    <p className="ellipsis">
-                      {project?.apps?.map((app) => app.name).join(', ') || ''}
-                    </p>
-                    <button
-                      onClick={() => {
-                        dispatch(toggleProject({ projectName: name }))
-                        if (project.toggled) {
-                          dispatch(stopTracking({ projectName: name }))
-                          saveData(trackingData)
-                        }
-                      }}
-                      className={project?.toggled ? 'bg-red' : 'bg-green'}
-                    >
-                      Toggle {project?.toggled ? 'Off' : 'On'}
-                    </button>
-                  </div>
-                </div>
-              )}
-              <div className="feature-item">
-                <h3>Tracked Events</h3>
-                <h4>Project events over time</h4>
-                <div className="event-bars">
-                  {projectBars.map((bar, i) => (
-                    <div
-                      key={i}
-                      className="event-bar"
-                      style={{ width: `${bar.load}%`, backgroundColor: bar.color }}
+    <>
+      <Loader />
+      <div className="container">
+        {processes.length > 0 && (
+          <>
+            <HeaderTracking />
+            <div className="features">
+              <div className="feature-item ">
+                <div className="project-settings">
+                  <section className="project-header">
+                    <h3>Project</h3>
+                    <input
+                      onChange={(e) => dispatch(setCurrentProject(e.target.value))}
+                      type="text"
+                      placeholder="Project Name"
+                      value={currentProject}
                     />
+
+                    <DataList
+                      data={processes}
+                      dataKey="name"
+                      placeholder="Select apps to track ..."
+                      onChange={setInputValue}
+                      setSelecteds={(selecteds) => dispatch(setTrackedApps(selecteds(trackedApps)))}
+                      renderItem={(process, i, { onClick }) => {
+                        return (
+                          <div key={i}>
+                            {process.icon && <img src={process.icon} alt={process.name} />}
+                            <option
+                              onClick={() => onClick(process)}
+                              style={{
+                                display: process.name.includes(inputValue.toLowerCase())
+                                  ? 'block'
+                                  : 'none'
+                              }}
+                            >
+                              {process.name}
+                            </option>
+                          </div>
+                        )
+                      }}
+                    />
+                  </section>
+                  <button
+                    onClick={() => {
+                      if (!currentProject) return alert('Please enter a project name')
+                      if (trackedApps.length === 0) return alert('Please select an app')
+                      handleCreateProject(currentProject, trackedApps)
+                    }}
+                  >
+                    {currentProject == name ? 'Modify' : 'Create'}
+                  </button>
+                </div>
+                {project && (
+                  <div className="feature-item project-line">
+                    <h3 className="ellipsis">
+                      {
+                        <span
+                          className={`${
+                            Date.now() - lastInputTime > 10000 && project.toggled
+                              ? 'red-dot'
+                              : 'green-dot'
+                          }`}
+                        ></span>
+                      }
+                      {`${name} - ${convertMs(project.elapsedTime)}`}
+                    </h3>
+                    <div className="project" style={{ gridTemplateColumns: '1fr auto' }}>
+                      <p className="ellipsis">
+                        {project?.apps?.map((app) => app.name).join(', ') || ''}
+                      </p>
+                      <button
+                        onClick={() => {
+                          dispatch(toggleProject({ projectName: name }))
+                          if (project.toggled) {
+                            dispatch(stopTracking({ projectName: name }))
+                            saveData(trackingData)
+                          }
+                        }}
+                        className={!project?.toggled || !isTracking ? 'bg-red' : 'bg-green'}
+                      >
+                        Toggle {project?.toggled ? 'Off' : 'On'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+                <div className="feature-item">
+                  <h3>Tracked Events</h3>
+                  <h4>Project events over time</h4>
+                  <div className="event-bars">
+                    {projectBars.map((bar, i) => (
+                      <div
+                        key={i}
+                        className="event-bar"
+                        style={{ width: `${bar.load}%`, backgroundColor: bar.color }}
+                      />
+                    ))}
+                  </div>
+
+                  {projectAppsSorted.map((app, i) => (
+                    <div key={i} className="tracked-app">
+                      <div
+                        className="app-color"
+                        style={{ backgroundColor: appsColorMap[app.name] }}
+                      />
+                      <h4>
+                        {app.name} - {convertMs(app.elapsedTime)}
+                      </h4>
+                      <p className="app-end">{convertDate(app.endDate)}</p>
+                    </div>
                   ))}
                 </div>
-
-                {projectAppsSorted.map((app, i) => (
-                  <div key={i} className="tracked-app">
-                    <div
-                      className="app-color"
-                      style={{ backgroundColor: appsColorMap[app.name] }}
-                    />
-                    <h4>
-                      {app.name} - {convertMs(app.elapsedTime)}
-                    </h4>
-                    <p className="app-end">{convertDate(app.endDate)}</p>
-                  </div>
-                ))}
               </div>
             </div>
-          </div>
-        </>
-      )}
-    </div>
+          </>
+        )}
+      </div>
+    </>
   )
 }

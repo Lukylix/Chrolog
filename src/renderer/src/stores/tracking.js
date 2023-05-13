@@ -1,4 +1,4 @@
-import { createSlice } from '@reduxjs/toolkit'
+import { createSlice, current } from '@reduxjs/toolkit'
 
 const trackingSlice = createSlice({
   name: 'tracking',
@@ -9,9 +9,12 @@ const trackingSlice = createSlice({
     lastTrackTime: Date.now(),
     intervalId: null,
     trackedApps: [],
-    currentProject: "",
+    currentProject: '',
     isGettingProcessList: false,
-    isLoadingData: false
+    isLoadingData: false,
+    processCount: 0,
+    currentProcess: 0,
+    completedProcess: 0
   },
   reducers: {
     setIsReady: (state, action) => {
@@ -40,8 +43,16 @@ const trackingSlice = createSlice({
     },
     setIsLoadingData: (state, action) => {
       state.isLoadingData = action.payload
+    },
+    setProcessCount: (state, action) => {
+      state.processCount = action.payload
+    },
+    setCurrentProcess: (state, action) => {
+      state.currentProcess = action.payload
+    },
+    setCompletedProcess: (state, action) => {
+      state.completedProcess = action.payload
     }
-
   }
 })
 
@@ -55,7 +66,10 @@ export const {
   setTrackedApps,
   setCurrentProject,
   setIsGettingProcessList,
-  setIsLoadingData
+  setIsLoadingData,
+  setProcessCount,
+  setCurrentProcess,
+  setCompletedProcess
 } = trackingSlice.actions
 
 export default trackingSlice.reducer

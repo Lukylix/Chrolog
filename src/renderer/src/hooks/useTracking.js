@@ -16,14 +16,13 @@ import {
   setLastInputTime,
   setLastTrackTime,
   setIsGettingProcessList,
-  setIsLoadingData
+  setIsLoadingData,
+  setProcessCount,
+  setCurrentProcess,
+  setCompletedProcess
 } from '../stores/tracking.js'
 
-import getWindowsWithIcons from '../../utilis/windowsWithIcons.js'
-import io from 'socket.io-client'
 const { ipcRenderer } = window.require('electron')
-
-let socket = io.connect('http://localhost:2356')
 
 const useTracking = () => {
   const trackingData = useSelector((state) => state.trackingData)
@@ -34,6 +33,7 @@ const useTracking = () => {
   const processes = useSelector((state) => state.processes)
   const isGettingProcessList = useSelector((state) => state.tracking.isGettingProcessList)
   const isLoadingData = useSelector((state) => state.tracking.isLoadingData)
+  const processCount = useSelector((state) => state.tracking.processCount)
 
   const dispatch = useDispatch()
 
@@ -69,35 +69,42 @@ const useTracking = () => {
   const getProcesses = async () => {
     if (processes.length > 0 || isGettingProcessList) return
     dispatch(setIsGettingProcessList(true))
-    const processesRes = await getWindowsWithIcons()
-    if (!processesRes) return
-    dispatch(setProcesses(processesRes))
-    dispatch(setIsGettingProcessList(false))
+    ipcRenderer.send('get-windows-with-icons')
+  }
+  const getProcessCount = async () => {
+    if (processCount > 0) return
+    const count = await ipcRenderer.invoke('get-process-count')
+    console.log('process count: ', count)
+    dispatch(setProcessCount(count))
   }
 
   useEffect(() => {
-    ; (() => {
-      socket.on('connect', function () {
-        socket.emit('join_room', 'input_events')
-      })
-      socket.on('keyboard_event', function () {
-        dispatch(setLastInputTime(Date.now()))
-      })
-      socket.on('mouse_event', function () {
-        dispatch(setLastInputTime(Date.now()))
-      })
-      socket.on('room_joined', function (message) {
-        console.log(message)
-      })
-    })()
-  }, [])
+    ipcRenderer.on('fetching-process-count', (event, count) => {
+      dispatch(setCurrentProcess(count))
+    })
+    ipcRenderer.on('process-completed-event', (event, count) => {
+      dispatch(setCompletedProcess(count))
+    })
+    ipcRenderer.on('processes-event', (event, processesRes) => {
+      dispatch(setProcesses(processesRes))
+      dispatch(setIsGettingProcessList(false))
+    })
+    ipcRenderer.on('keyboard_event', () => {
+      dispatch(setLastInputTime(Date.now()))
+    })
 
-  useEffect(() => {
+    ipcRenderer.on('mouse_event', () => {
+      dispatch(setLastInputTime(Date.now()))
+    })
+    getProcessCount()
     loadData()
-    getProcesses()
+
     dispatch(setIsReady(true))
   }, [])
 
+  useEffect(() => {
+    if (processCount == 0) getProcesses()
+  }, [processCount])
   const handleTrack = () => {
     if (isTracking) return // Don't start tracking if no process has been selected
 

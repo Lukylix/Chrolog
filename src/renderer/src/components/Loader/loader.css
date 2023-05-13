@@ -1,0 +1,31 @@
+.loader {
+  width: 100%;
+  height: 100%;
+  -webkit-animation: spin 2s linear infinite;
+  animation: spin 2s linear infinite;
+  justify-content: center;
+  justify-self: center;
+  align-self: center;
+  align-items: center;
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  gap: 30px;
+  padding: 75px;
+}
+
+.loader .loader-bar-container {
+  width: 100%;
+  height: 30px;
+  background-color: #202020;
+  border-radius: 10px;
+}
+
+.loader .loader-bar-container .loader-bar {
+  height: 100%;
+  background-color: #1aa68a;
+  border-radius: 10px;
+}

@@ -1,17 +1,10 @@
-import { app, shell, BrowserWindow, nativeImage, ipcMain } from 'electron'
+import { app, shell, BrowserWindow, nativeImage, ipcMain, webContents } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import ffi from '@lwahonen/ffi-napi'
 import ref from '@lwahonen/ref-napi'
 import { Database } from 'sqlite3'
-import { Server } from 'socket.io'
-
-const io = new Server(2356, {
-  cors: {
-    origin: '*'
-  }
-})
 
 const appDataPath = app.getPath('appData')
 const dbPath = join(appDataPath, 'Chrolog', 'tracking.sqlite')
@@ -36,7 +29,6 @@ const psapi = new ffi.Library('psapi', {
   GetModuleFileNameExA: ['uint32', ['int32', 'int32', 'pointer', 'uint32']]
 })
 
-let processes = []
 
 var voidPtr = ref.refType(ref.types.void)
 var stringPtr = ref.refType(ref.types.CString)
@@ -48,16 +40,19 @@ const user32 = new ffi.Library('user32', {
   EnumWindows: ['int', [voidPtr, 'int32']],
   SetWindowsHookExA: ['int', ['int', 'pointer', 'int', 'int']],
   CallNextHookEx: ['int', ['long', 'int', 'long', 'long']],
-  UnhookWindowsHookEx: ['bool', ['int']]
+  UnhookWindowsHookEx: ['bool', ['int']],
+  IsWindowVisible: ['bool', ['long']]
 })
 const WH_KEYBOARD_LL = 13
 const WH_MOUSE_LL = 14
-
 let keyboardHookProc = ffi.Callback(
   'long',
   ['int', 'long', 'long'],
   function (code, wParam, lParam) {
-    io.to('input_events').emit('keyboard_event', { wParam, lParam })
+    // Send a 'keyboard_event' to all renderer processes
+    webContents.getAllWebContents().forEach((webContent) => {
+      webContent.send('keyboard_event', { wParam, lParam })
+    })
     return user32.CallNextHookEx(0, code, wParam, lParam)
   }
 )
@@ -68,37 +63,16 @@ let mouseHookProc = ffi.Callback('long', ['int', 'long', 'long'], function (code
   let currentTime = Date.now()
 
   if (currentTime - lastMouseEventTime > 100) {
-    io.to('input_events').emit('mouse_event', { wParam, lParam })
+    // Send a 'mouse_event' to all renderer processes
+    webContents.getAllWebContents().forEach((webContent) => {
+      webContent.send('mouse_event', { wParam, lParam })
+    })
     lastMouseEventTime = currentTime
   }
   return user32.CallNextHookEx(0, code, wParam, lParam)
 })
 
 let hKeyboardHook, hMouseHook
-
-// Server-side
-io.on('connection', function (socket) {
-  console.log('a user connected')
-  if (!hKeyboardHook) {
-    hKeyboardHook = user32.SetWindowsHookExA(WH_KEYBOARD_LL, keyboardHookProc, 0, 0)
-    if (hKeyboardHook === 0) {
-      throw new Error('SetWindowsHookExA for keyboard failed')
-    }
-  }
-
-  if (!hMouseHook) {
-    hMouseHook = user32.SetWindowsHookExA(WH_MOUSE_LL, mouseHookProc, 0, 0)
-    if (hMouseHook === 0) {
-      throw new Error('SetWindowsHookExA for mouse failed')
-    }
-  }
-
-  socket.on('join_room', function (room) {
-    console.log('user joined room', room)
-    socket.join(room)
-    socket.emit('room_joined', `You have joined room ${room}`)
-  })
-})
 
 function run(query, params = []) {
   return new Promise((resolve, reject) => {
@@ -120,7 +94,10 @@ function createWindow() {
     height: 670,
     show: false,
     autoHideMenuBar: true,
-    ...(process.platform === 'linux' ? { icon } : {}),
+    frame: false,
+    titleBarStyle: 'hidden',
+
+    icon,
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: false,
@@ -139,6 +116,19 @@ function createWindow() {
     shell.openExternal(details.url)
     return { action: 'deny' }
   })
+
+  if (!hKeyboardHook) {
+    hKeyboardHook = user32.SetWindowsHookExA(WH_KEYBOARD_LL, keyboardHookProc, 0, 0)
+    if (hKeyboardHook === 0) {
+      throw new Error('SetWindowsHookExA for keyboard failed')
+    }
+  }
+  if (!hMouseHook) {
+    hMouseHook = user32.SetWindowsHookExA(WH_MOUSE_LL, mouseHookProc, 0, 0)
+    if (hMouseHook === 0) {
+      throw new Error('SetWindowsHookExA for mouse failed')
+    }
+  }
 
   // HMR for renderer base on electron-vite cli.
   // Load the remote URL for development or the local html file for production.
@@ -173,68 +163,115 @@ function createWindow() {
     return null
   })
   let lastProcessFetchTime = 0
-  ipcMain.handle('get-windows-with-icons', async () => {
-    if (lastProcessFetchTime + 1000 > Date.now()) return
+  let processes = []
+  let processesToBeFetched = 0
+  let completedProcesses = 0
+  // ...
+
+  let processQueue = []
+  let isProcessing = false
+
+  const processQueueItem = async () => {
+    if (processQueue.length === 0) {
+      isProcessing = false
+      return
+    }
+
+    isProcessing = true
+    const { processId, snapshot, entry } = processQueue.shift()
+    await timeoutPromise(50)
+    await getProcessInfos(processId, snapshot, entry)
+    processQueueItem()
+  }
+
+  const enqueueProcess = (processId, snapshot, entry) => {
+    processQueue.push({ processId, snapshot, entry })
+    if (!isProcessing) processQueueItem()
+  }
+
+  const getProcessInfos = async (processId) => {
+    const hProcess = kernel32.OpenProcess(
+      PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,
+      false,
+      processId
+    )
+
+    if (hProcess) {
+      const buffer = Buffer.alloc(MAX_PATH)
+      const size = psapi.GetModuleFileNameExA(hProcess, 0, buffer, MAX_PATH)
+
+      if (size > 0) {
+        const processName = buffer.toString('utf8', 0, size).split('\\').pop()
+        const image = nativeImage.createFromPath(processName)
+        if (!processes.find((p) => p.name === processName)) {
+          processes.push({
+            pid: processId,
+            name: processName,
+            image: image.toDataURL()
+          })
+        }
+      }
+
+      kernel32.CloseHandle(hProcess)
+    }
+    completedProcesses += 1
+    webContents.getAllWebContents().forEach((webContent) => {
+      webContent.send('processes-event', processes)
+    })
+    if (completedProcesses === processesToBeFetched) {
+      console.log("Sending 'processes-event' to all renderer processes")
+      webContents.getAllWebContents().forEach((webContent) => {
+        webContent.send('processes-event', processes)
+      })
+    }
+    // }
+  }
+
+  ipcMain.on('get-windows-with-icons', async () => {
+    if (lastProcessFetchTime + 1000 > Date.now() || processes.length > 0) return
+    console.log('get-windows-with-icons')
     lastProcessFetchTime = Date.now()
-
-
-    const EnumWindowsProc = ffi.Callback('int', ['long', 'int32'], async (hwnd) => {
-      const processId = ref.alloc('uint32')
+    processes = []
+    const EnumWindowsProc = ffi.Callback('int', ['long', 'int32'], (hwnd) => {
+      let processId = ref.alloc('uint32')
       user32.GetWindowThreadProcessId(hwnd, processId)
 
-      if (processId.deref() === 0) return 1
+      if (processId.deref() === 0 || !processId.deref()) return 1
 
-      const snapshot = kernel32.CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0)
-      const entry = Buffer.alloc(PROCESSENTRY32_SIZE)
+      let snapshot = kernel32.CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0)
+      if (!snapshot) return 1
+      let entry = Buffer.alloc(PROCESSENTRY32_SIZE)
       entry.writeUInt32LE(PROCESSENTRY32_SIZE, 0)
-
+      if (!entry) return 1
       if (!kernel32.Process32First(snapshot, entry)) {
         kernel32.CloseHandle(snapshot)
         return 1
       }
-
-      do {
-        await timeoutPromise(50)
-        if (entry.readUInt32LE(8) === processId.deref()) {
-          const hProcess = kernel32.OpenProcess(
-            PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,
-            false,
-            processId.deref()
-          )
-
-          if (hProcess) {
-            const buffer = Buffer.alloc(MAX_PATH)
-            const size = psapi.GetModuleFileNameExA(hProcess, 0, buffer, MAX_PATH)
-
-            if (size > 0) {
-              const processName = buffer.toString('utf8', 0, size).split('\\').pop()
-              const image = nativeImage.createFromPath(processName)
-
-              if (!processes.find((p) => p.name === processName)) {
-                processes.push({
-                  pid: processId.deref(),
-                  name: processName,
-                  image: image.toDataURL()
-                })
-              }
-            }
-
-            kernel32.CloseHandle(hProcess)
-          }
-
-          break
-        }
-      } while (kernel32.Process32Next(snapshot, entry))
-
-      kernel32.CloseHandle(snapshot)
+      processesToBeFetched += 1
+      webContents.getAllWebContents().forEach((webContent) => {
+        webContent.send('fetching-process-count', processesToBeFetched)
+      })
+      enqueueProcess(processId.deref())
       return 1
     })
-
+    await timeoutPromise(2000)
     user32.EnumWindows(EnumWindowsProc, 0)
-    return processes
   })
 
-  ipcMain.handle('save-data', async (event, trackingData) => {
+  let processCount = 0
+  let lastTimeFetchingProcessCount = 0
+  ipcMain.handle('get-process-count', async () => {
+    if (lastTimeFetchingProcessCount + 1000 > Date.now()) return processCount
+    if (processCount > 0) return processCount
+    const CountWindowsProc = ffi.Callback('int', ['long', 'int32'], () => {
+      processCount += 1
+      return 1
+    })
+    user32.EnumWindows(CountWindowsProc, 0)
+    return processCount
+  })
+
+  ipcMain.on('save-data', async (event, trackingData) => {
     // Create table for project data if it doesn't exist
     await run(
       'CREATE TABLE if not exists project_data (name TEXT, toggled BOOLEAN, elapsedTime INTEGER, startDate INTEGER, endDate INTEGER)'
@@ -404,41 +441,22 @@ function createWindow() {
       })
     })
   })
-
-  let intervalId = null
-  ipcMain.on('stop-tracking', (event) => {
-    clearInterval(intervalId)
-    event.returnValue = true
+  ipcMain.on('minimize-event', () => {
+    mainWindow.minimize()
   })
-  ipcMain.on('start-tracking', (event, appTitle) => {
-    let isTracking = false
-    let trackingData = {}
-    let trackingTime = 0
 
-    intervalId = setInterval(() => {
-      if (isTracking) {
-        trackingData[appTitle] = (trackingData[appTitle] || 0) + 1000
-        trackingTime += 1000
-        mainWindow.webContents.send('tracking-data', trackingData)
-        mainWindow.webContents.send('tracking-time', trackingTime)
-      }
-    }, 1000)
-
-    app.on('activate', () => {
-      const activeApp = BrowserWindow.getFocusedWindow().getTitle()
-      if (activeApp === appTitle) {
-        if (!isTracking) {
-          isTracking = true
-          event.sender.send('tracking-started')
-        }
-      } else {
-        if (isTracking) {
-          isTracking = false
-          event.sender.send('tracking-stopped')
-        }
-      }
-    })
+  ipcMain.on('maximize-event', () => {
+    if (mainWindow.isMaximized()) {
+      mainWindow.unmaximize()
+    } else {
+      mainWindow.maximize()
+    }
   })
+
+  ipcMain.on('close-event', () => {
+    mainWindow.close()
+  })
+
 }
 
 // This method will be called when Electron has finished
@@ -472,6 +490,3 @@ app.on('window-all-closed', () => {
     app.quit()
   }
 })
-
-// In this file you can include the rest of your app"s specific main process
-// code. You can also put them in separate files and require them here.

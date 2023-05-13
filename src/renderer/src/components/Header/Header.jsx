@@ -1,24 +1,21 @@
-import { useSelector } from 'react-redux'
-import useTracking from '../../hooks/useTracking.js'
-import { Link } from 'react-router-dom'
+const { ipcRenderer } = window.require('electron')
+
+import { ReactComponent as Close } from '../../assets/close.svg'
+import { ReactComponent as Minimize } from '../../assets/minimize.svg'
+import { ReactComponent as Maximize } from '../../assets/fullscreen.svg'
+
+import './header.css'
 
 export default function Header() {
-  const isTracking = useSelector((state) => state.tracking.isTracking)
-  const { handleTrack, handleStopTrack } = useTracking()
+  const minimize = () => ipcRenderer.send('minimize-event')
+  const maximize = () => ipcRenderer.send('maximize-event')
+  const close = () => ipcRenderer.send('close-event')
+
   return (
-    <div className="d-inline space-between">
-      <Link to="/">
-        <h2>Application Tracker</h2>
-      </Link>
-      {isTracking ? (
-        <button onClick={handleStopTrack} className="bg-red">
-          Stop Tracking
-        </button>
-      ) : (
-        <button onClick={handleTrack} className="bg-green">
-          Start Tracking
-        </button>
-      )}
-    </div>
+    <nav className="header">
+      <Minimize fill="white" onClick={minimize} style={{ transform: 'translateY(-2px)' }} />
+      <Maximize fill="#3282f7" onClick={maximize} />
+      <Close fill="#f3696c" onClick={close} />
+    </nav>
   )
 }

@@ -1,0 +1,11 @@
+.header {
+  display: flex;
+  width: min-content;
+  justify-content: flex-end;
+  width: 100%;
+  gap: 5px;
+  -webkit-app-region: drag;
+  padding: 5px 5px 0 0;
+  text-align: center;
+  align-items: center;
+}
