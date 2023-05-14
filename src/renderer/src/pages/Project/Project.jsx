@@ -3,7 +3,7 @@ import { useDispatch, useSelector } from 'react-redux'
 import { stopTracking, toggleProject } from '../../stores/trackingData.js'
 import { setTrackedApps, setCurrentProject } from '../../stores/tracking.js'
 import HeaderTracking from '../../components/HeaderTracking/Headertracking.jsx'
-import { DataList } from '../../components/Datalist/DataList.jsx'
+import { DataList } from '../../components/Datalist/Datalist.jsx'
 import { useEffect, useMemo, useState } from 'react'
 import useTracking from '../../hooks/useTracking.js'
 

@@ -195,38 +195,26 @@ const getActiveAppListenerLinux = () => {
                 return
               }
 
-              X.GetProperty(
-                0,
-                activeWindowId,
-                netWmPidAtom,
-                x11.XA_CARDINAL,
-                0,
-                4,
-                (err, prop) => {
+              X.GetProperty(0, activeWindowId, netWmPidAtom, x11.XA_CARDINAL, 0, 4, (err, prop) => {
+                if (err) {
+                  resolve(null)
+                  return
+                }
+
+                const pid = prop.data.readUInt32LE(0)
+                const commPath = path.join('/proc', pid.toString(), 'comm')
+                fs.readFile(commPath, 'utf8', (err, comm) => {
                   if (err) {
                     resolve(null)
                     return
                   }
 
-                  const pid = prop.data.readUInt32LE(0)
-                  const commPath = path.join('/proc', pid.toString(), 'comm')
-                  fs.readFile(commPath, 'utf8', (err, comm) => {
-                    if (err) {
-                      resolve(null)
-                      return
-                    }
-
-                    resolve(comm.trim())
-                  })
-                }
-              )
-
+                  resolve(comm.trim())
+                })
+              })
             })
-
           })
-
         })
-
       })
     } catch (e) {
       resolve(null)
@@ -347,7 +335,7 @@ const getProcessesListenerLinux = async () => {
     try {
       exeLink = fs.readlinkSync(path.join(processPath, 'exe'))
     } catch (error) {
-      if (error.code !== 'EACCES') {
+      if (error.code !== 'EACCES' && error.code !== 'ENOENT') {
         throw error
       }
       // if 'EACCES', permission was denied, so we continue without the link
