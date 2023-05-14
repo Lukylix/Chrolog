@@ -7,6 +7,10 @@ import {
   getProcessCountListener,
   getProcessesListener
 } from './utilis/system'
+import Store from 'electron-store'
+import os from 'os'
+
+const store = new Store()
 
 function createWindow() {
   const mainWindow = new BrowserWindow({
@@ -59,6 +63,43 @@ function createWindow() {
   ipcMain.handle('get-process-count', getProcessCountListener)
 
   ipcMain.handle('load-data', loadDataListener)
+
+  ipcMain.on('save-settings', (event, data) => {
+    store.set('settings', data)
+  })
+  ipcMain.handle('load-settings', () => {
+    return store.get('settings')
+  })
+  ipcMain.on('set-auto-launch', (event, data) => {
+    if (os.platform() === 'linux') {
+      const desktopEnv = process.env.XDG_CURRENT_DESKTOP
+
+      // Check if the current desktop environment supports autostart
+      if (desktopEnv && desktopEnv.includes('GNOME')) {
+        // Enable app to run at startup for GNOME
+        app.setLoginItemSettings({
+          openAtLogin: data,
+          path: process.execPath,
+          args: []
+        })
+      } else if (desktopEnv && desktopEnv.includes('KDE')) {
+        // Enable app to run at startup for KDE
+        // KDE Plasma does not provide a programmatic method to set autostart,
+        // so you may need to instruct users to add your app manually via system settings.
+        console.log('Please set up autostart for your app in KDE Plasma manually.')
+      } else {
+        // Unsupported desktop environment
+        console.log('Autostart is not supported on this Linux desktop environment.')
+      }
+    } else if (os.platform() === 'win32') {
+      const appPath = app.getPath('exe')
+      app.setLoginItemSettings({
+        openAtLogin: data,
+        path: appPath,
+        args: []
+      })
+    }
+  })
 
   ipcMain.on('minimize-event', () => {
     mainWindow.minimize()

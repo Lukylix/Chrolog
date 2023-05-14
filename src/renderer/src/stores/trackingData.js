@@ -112,7 +112,8 @@ const trackingDataSlice = createSlice({
       }
     },
     updateTrackingDataAfterInactivity: (state, action) => {
-      const { trackedAppName, lastInputTime, lastTrackTime } = action.payload
+      const { minLogSecs } = action.payload.settings
+      const { trackedAppName, lastInputTime, lastTrackTime } = action.payload.trackingData
       const matchingProjectsKeys = Object.keys(state).filter(
         (projectKey) =>
           state[projectKey].apps.find((app) => app.name === trackedAppName) &&
@@ -129,15 +130,21 @@ const trackingDataSlice = createSlice({
           .map((log) => {
             if (log.name === trackedAppName && !log.endDate) {
               console.log(`End tracking ${trackedAppName}`)
+              const elapsedTime = trackedApp.elapsedTime + 1000 - (Date.now() - lastInputTime)
               return {
                 ...log,
-                elapsedTime: trackedApp.elapsedTime + 1000 - (Date.now() - lastInputTime),
+                elapsedTime: elapsedTime,
+                toKeep: elapsedTime > minLogSecs * 1000,
                 endDate: Date.now()
               }
             }
             return log
           })
-          .filter((log) => !log.elapsedTime < 0)
+          .filter((log) => !log.elapsedTime < 0 && log.toKeep)
+          .map((log) => {
+            delete log.toKeep
+            return log
+          })
         state[projectName] = {
           ...project,
           elapsedTime: elapsedTime + 1000 - (lastTrackTime - lastInputTime),

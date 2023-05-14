@@ -9,6 +9,7 @@ import { Provider } from 'react-redux'
 import store from './stores/store.js'
 import useTracking from './hooks/useTracking'
 import Header from './components/Header/Header'
+import Settings from './pages/Settings/Settings'
 
 const Tracking = () => {
   useTracking()
@@ -18,13 +19,17 @@ const Tracking = () => {
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <Provider store={store}>
-      <Tracking />
-      <Header />
       <Router>
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/project/:name" element={<Project />} />
-        </Routes>
+        <Tracking />
+
+        <div className="main">
+          <Header />
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/project/:name" element={<Project />} />
+            <Route path="/settings" element={<Settings />} />
+          </Routes>
+        </div>
       </Router>
     </Provider>
   </React.StrictMode>

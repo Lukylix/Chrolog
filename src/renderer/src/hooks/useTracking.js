@@ -21,6 +21,7 @@ import {
   setCurrentProcess,
   setCompletedProcess
 } from '../stores/tracking.js'
+import { setSettings } from '../stores/settings.js'
 
 const { ipcRenderer } = window.require('electron')
 
@@ -34,6 +35,16 @@ const useTracking = () => {
   const isGettingProcessList = useSelector((state) => state.tracking.isGettingProcessList)
   const isLoadingData = useSelector((state) => state.tracking.isLoadingData)
   const processCount = useSelector((state) => state.tracking.processCount)
+  const minLastInputSecs = useSelector((state) => state.settings.minLastInputSecs)
+  const startTrackingAtLaunch = useSelector((state) => state.settings.startTrackingAtLaunch)
+
+  useEffect(() => {
+    (async () => {
+      const settings = await ipcRenderer.invoke('load-settings')
+      dispatch(setSettings(settings))
+      if (startTrackingAtLaunch && !isTracking) handleTrack()
+    })()
+  }, [])
 
   const dispatch = useDispatch()
 
@@ -55,7 +66,6 @@ const useTracking = () => {
     if (Object.keys(trackingData).length > 0 || isLoadingData) return
     dispatch(setIsLoadingData(true))
     const trackingDataRes = await ipcRenderer.invoke('load-data')
-    console.log('loaded data: ', trackingDataRes)
     dispatch(saveTrackingData(trackingDataRes))
     dispatch(setIsLoadingData(false))
   }
@@ -74,7 +84,6 @@ const useTracking = () => {
   const getProcessCount = async () => {
     if (processCount > 0) return
     const count = await ipcRenderer.invoke('get-process-count')
-    console.log('process count: ', count)
     dispatch(setProcessCount(count))
   }
 
@@ -120,7 +129,7 @@ const useTracking = () => {
       }, [])
       const trackedApp = allProjectTrackedApps.find((app) => app.name === activeApp)
       if (!trackedApp) return
-      if (Date.now() - lastInputTime > 1000 * 60 * 2) {
+      if (Date.now() - lastInputTime > 1000 * minLastInputSecs) {
         if (lastInputTime < lastTrackTime) {
           dispatch(
             updateTrackingDataAfterInactivity({
