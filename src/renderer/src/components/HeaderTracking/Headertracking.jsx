@@ -8,7 +8,7 @@ export default function HeaderTracking() {
   return (
     <div className="d-inline space-between">
       <Link to="/">
-        <h2>Application Tracker</h2>
+        <h2>Chrolog Tracker</h2>
       </Link>
       {isTracking ? (
         <button onClick={handleStopTrack} className="bg-red">

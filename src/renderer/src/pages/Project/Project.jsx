@@ -183,7 +183,7 @@ export default function Project() {
                       {
                         <span
                           className={`${
-                            Date.now() - lastInputTime > 10000 && project.toggled && isTracking
+                            Date.now() - lastInputTime > 10000 && project.toggled && !isTracking
                               ? 'red-dot'
                               : 'green-dot'
                           }`}
