@@ -175,7 +175,6 @@ const useTracking = () => {
     )
   }
 
-  const handleTrack = async () => { }
 
   const handleStopTrack = () => {
     dispatch(setIsTracking(false))
@@ -188,7 +187,6 @@ const useTracking = () => {
     handleCreateProject,
     loadData,
     saveData,
-    handleTrack,
     handleStopTrack
   }
 }

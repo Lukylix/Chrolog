@@ -21,7 +21,7 @@ export default function HeaderTracking() {
             <SettingsIcon fill="white" />
           </Link>
         )}
-        {path === '/settings' && (
+        {(path === '/settings' || path === '/project') && (
           <Link className="icon-title" to="/">
             <BackIcon fill="white" />
           </Link>
