@@ -6,7 +6,8 @@ const settingsSlice = createSlice({
     minLogSecs: 5,
     minLastInputSecs: 120,
     startTrackingAtLaunch: true,
-    startAtLaunch: false
+    startAtLaunch: false,
+    isFirstSettingsLoad: true
   },
   reducers: {
     setSettings: (state, action) => {
@@ -23,10 +24,13 @@ const settingsSlice = createSlice({
     },
     setStartAtLaunch: (state, action) => {
       state.startAtLaunch = action.payload
+    },
+    setIsFirstSettingsLoad: (state, action) => {
+      state.isFirstSettingsLoad = action.payload
     }
   }
 })
 
-export const { setMinLogSecs, setMinLastInputSecs, setStartTrackingAtLaunch, setSettings, setStartAtLaunch } = settingsSlice.actions
+export const { setMinLogSecs, setMinLastInputSecs, setStartTrackingAtLaunch, setSettings, setStartAtLaunch, setIsFirstSettingsLoad } = settingsSlice.actions
 
 export default settingsSlice.reducer

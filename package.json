@@ -1,6 +1,6 @@
 {
   "name": "chrolog",
-  "version": "1.0.7",
+  "version": "2.0.0",
   "description": "An Electron application with React",
   "main": "./out/main/index.js",
   "author": "example.com",

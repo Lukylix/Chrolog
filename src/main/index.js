@@ -5,7 +5,8 @@ import { loadDataListener, saveDataListener } from './utilis/database'
 import {
   getActiveAppListener,
   getProcessCountListener,
-  getProcessesListener
+  getProcessesListener,
+  hookInputs
 } from './utilis/system'
 import Store from 'electron-store'
 import os from 'os'
@@ -29,6 +30,7 @@ function createWindow() {
       disableGpu: true
     }
   })
+  hookInputs()
 
   mainWindow.on('ready-to-show', () => {
     mainWindow.show()

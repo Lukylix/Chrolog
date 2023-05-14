@@ -66,7 +66,7 @@ const trackingDataSlice = createSlice({
       const matchingProjectsKeys = Object.keys(state).filter(
         (projectKey) =>
           state[projectKey].apps.find((app) => app.name === trackedAppName) &&
-          state[projectKey].toggled
+          !!state[projectKey].toggled
       )
 
       for (const projectName of matchingProjectsKeys) {
@@ -97,7 +97,6 @@ const trackingDataSlice = createSlice({
         })
 
         if (!trackedApp) {
-          console.log(`Start tracking ${trackedAppName}`)
           trackingLogs.push({
             name: trackedAppName,
             startDate: Date.now(),
@@ -117,7 +116,7 @@ const trackingDataSlice = createSlice({
       const matchingProjectsKeys = Object.keys(state).filter(
         (projectKey) =>
           state[projectKey].apps.find((app) => app.name === trackedAppName) &&
-          state[projectKey].toggled
+          !!state[projectKey].toggled
       )
 
       for (const projectName of matchingProjectsKeys) {
