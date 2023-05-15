@@ -14,6 +14,9 @@ import os from 'os'
 const store = new Store()
 
 function createWindow() {
+  let icon
+  if (os.platform() === 'win32') icon = join(__dirname, '../../resources/icon256.ico')
+  else if (os.platform() === 'linux') icon = join(__dirname, '../../resources/icon512.png')
   const mainWindow = new BrowserWindow({
     width: 900,
     height: 670,
@@ -21,6 +24,7 @@ function createWindow() {
     autoHideMenuBar: true,
     frame: false,
     titleBarStyle: 'hidden',
+    icon,
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: false,

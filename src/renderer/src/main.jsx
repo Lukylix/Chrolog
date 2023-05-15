@@ -12,7 +12,7 @@ import Header from './components/Header/Header'
 import Settings from './pages/Settings/Settings'
 
 const Tracking = () => {
-  useTracking()
+  useTracking(true)
   return <></>
 }
 

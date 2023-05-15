@@ -1,4 +1,4 @@
-appId: com.electron.app
+appId: com.chrolog.app
 productName: chrolog
 directories:
   buildResources: build
@@ -13,6 +13,7 @@ asarUnpack:
 afterSign: build/notarize.js
 win:
   executableName: chrolog
+  icon: ./resources/icon256.ico
 nsis:
   artifactName: ${name}-${version}-setup.${ext}
   shortcutName: ${productName}
@@ -32,11 +33,12 @@ linux:
     - AppImage
     - snap
     - deb
-  maintainer: electronjs.org
+  maintainer: lukylix
   category: Utility
+  icon: ./resources/icon512.png
 appImage:
   artifactName: ${name}-${version}.${ext}
 npmRebuild: false
-publish:
-  provider: generic
-  url: https://example.com/auto-updates
+# publish:
+#   provider: generic
+#   url: https://example.com/auto-updates

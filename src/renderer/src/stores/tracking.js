@@ -1,4 +1,4 @@
-import { createSlice, current } from '@reduxjs/toolkit'
+import { createSlice } from '@reduxjs/toolkit'
 
 const trackingSlice = createSlice({
   name: 'tracking',
@@ -7,14 +7,16 @@ const trackingSlice = createSlice({
     isTracking: false,
     lastInputTime: Date.now(),
     lastTrackTime: Date.now(),
-    timeoutId: null,
+    intervalId: null,
     trackedApps: [],
     currentProject: '',
     isGettingProcessList: false,
     isLoadingData: false,
     processCount: 0,
     currentProcess: 0,
-    completedProcess: 0
+    completedProcess: 0,
+    shouldTrack: false,
+    isTrackingRunning: false
   },
   reducers: {
     setIsReady: (state, action) => {
@@ -29,8 +31,8 @@ const trackingSlice = createSlice({
     setLastTrackTime: (state, action) => {
       state.lastTrackTime = action.payload
     },
-    setTimeoutId: (state, action) => {
-      state.timeoutId = action.payload
+    setIntervalId: (state, action) => {
+      state.intervalId = action.payload
     },
     setTrackedApps: (state, action) => {
       state.trackedApps = action.payload
@@ -52,6 +54,12 @@ const trackingSlice = createSlice({
     },
     setCompletedProcess: (state, action) => {
       state.completedProcess = action.payload
+    },
+    setShouldTrack: (state, action) => {
+      state.shouldTrack = action.payload
+    },
+    setIsTrackingRunning: (state, action) => {
+      state.isTrackingRunning = action.payload
     }
   }
 })
@@ -62,14 +70,16 @@ export const {
   setIsTracking,
   setLastInputTime,
   setLastTrackTime,
-  setTimeoutId,
+  setIntervalId,
   setTrackedApps,
   setCurrentProject,
   setIsGettingProcessList,
   setIsLoadingData,
   setProcessCount,
   setCurrentProcess,
-  setCompletedProcess
+  setCompletedProcess,
+  setShouldTrack,
+  setIsTrackingRunning
 } = trackingSlice.actions
 
 export default trackingSlice.reducer

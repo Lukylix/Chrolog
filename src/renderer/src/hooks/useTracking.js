@@ -18,29 +18,73 @@ import {
   setIsLoadingData,
   setProcessCount,
   setCurrentProcess,
-  setCompletedProcess
+  setCompletedProcess,
+  setShouldTrack,
+  setIsTrackingRunning
 } from '../stores/tracking.js'
 import { setIsFirstSettingsLoad, setSettings } from '../stores/settings.js'
 
 const { ipcRenderer } = window.require('electron')
 
-const useTracking = () => {
-  const lastInputTime = useSelector((state) => state.tracking.lastInputTime)
-  const lastTrackTime = useSelector((state) => state.tracking.lastTrackTime)
+const useTracking = (isMaster = false) => {
   const isTracking = useSelector((state) => state.tracking.isTracking)
-  const trackingData = useSelector((state) => state.trackingData)
   const processes = useSelector((state) => state.processes)
   const isGettingProcessList = useSelector((state) => state.tracking.isGettingProcessList)
   const isLoadingData = useSelector((state) => state.tracking.isLoadingData)
   const processCount = useSelector((state) => state.tracking.processCount)
-  const minLastInputSecs = useSelector((state) => state.settings.minLastInputSecs)
   const startTrackingAtLaunch = useSelector((state) => state.settings.startTrackingAtLaunch)
   const isFirstSettingsLoad = useSelector((state) => state.settings.isFirstSettingsLoad)
+  const isTrackingRunning = useSelector((state) => state.tracking.isTrackingRunning)
+  const trackingData = useSelector((state) => state.trackingData)
+  const lastInputTime = useSelector((state) => state.tracking.lastInputTime)
+  const lastTrackTime = useSelector((state) => state.tracking.lastTrackTime)
+  const minLastInputSecs = useSelector((state) => state.settings.minLastInputSecs)
+  const shouldTrack = useSelector((state) => state.tracking.shouldTrack)
 
-  // Sync the ref with the state
+  const dispatch = useDispatch()
 
+  const track = async () => {
+    dispatch(setShouldTrack(false))
+    if (!isTracking || !isTrackingRunning) return
+
+    ipcRenderer.on('window-closed', () => {
+      dispatch(setIsTracking(false))
+    })
+    const activeApp = await ipcRenderer.invoke('get-active-app')
+    if (!activeApp) return
+    const allProjectTrackedApps = Object.keys(trackingData).reduce((acc, projectKey) => {
+      const project = trackingData[projectKey]
+      if (project.toggled) acc = [...acc, ...project.apps]
+      return acc
+    }, [])
+    const trackedApp = allProjectTrackedApps.find(
+      (app) => app.name.toLowerCase().trim() === activeApp.toLowerCase().trim()
+    )
+    if (!trackedApp) return
+    if (Date.now() - lastInputTime > 1000 * minLastInputSecs) {
+      if (lastInputTime < lastTrackTime) {
+        dispatch(
+          updateTrackingDataAfterInactivity({
+            trackedAppName: trackedApp.name,
+            lastInputTime: lastInputTime,
+            lastTrackTime: lastTrackTime
+          })
+        )
+        saveData(trackingData)
+        dispatch(setLastTrackTime(lastInputTime))
+      }
+      return
+    }
+    dispatch(setLastTrackTime(Date.now()))
+    dispatch(
+      updateTrackingData({
+        trackedAppName: trackedApp.name
+      })
+    )
+  }
   useEffect(() => {
     ; (async () => {
+      if (!isMaster) return
       const settings = await ipcRenderer.invoke('load-settings')
       dispatch(setSettings(settings))
       if (startTrackingAtLaunch && isFirstSettingsLoad && !isTracking) {
@@ -51,23 +95,26 @@ const useTracking = () => {
   }, [])
 
   useEffect(() => {
-    let clearing = false
+    let shouldClear = false
       ; (async () => {
-        if (isTracking) {
-          if (!isTracking && Object.keys(trackingData).length > 0) return // Don't start tracking if no process has been selected
-          console.log('Start tracking')
-          dispatch(setIsTracking(true))
-          do {
-            track()
+        if (!isTrackingRunning && Object.keys(trackingData).length > 0 && isMaster) {
+          dispatch(setIsTrackingRunning(true))
+          while (shouldClear === false) {
+            console.log('tracking')
+            dispatch(setShouldTrack(true))
             await new Promise((resolve) => setTimeout(resolve, 1000))
-          } while (isTracking && !clearing)
+          }
+          dispatch(setIsTrackingRunning(false))
         }
       })()
     return () => {
-      clearing = true
+      shouldClear = true
     }
-  }, [isTracking])
-  const dispatch = useDispatch()
+  }, [isTrackingRunning, trackingData])
+
+  useEffect(() => {
+    if (shouldTrack && isMaster) track()
+  }, [shouldTrack])
 
   const handleCreateProject = (projectName, associatedApps) => {
     if (!projectName) {
@@ -138,44 +185,6 @@ const useTracking = () => {
     if (processCount == 0) getProcesses()
   }, [processCount])
 
-  const track = async () => {
-    ipcRenderer.on('window-closed', () => {
-      dispatch(setIsTracking(false))
-    })
-    const activeApp = await ipcRenderer.invoke('get-active-app')
-    if (!activeApp) return
-    const allProjectTrackedApps = Object.keys(trackingData).reduce((acc, projectKey) => {
-      const project = trackingData[projectKey]
-      if (project.toggled) acc = [...acc, ...project.apps]
-      return acc
-    }, [])
-    const trackedApp = allProjectTrackedApps.find(
-      (app) => app.name.toLowerCase().trim() === activeApp.toLowerCase().trim()
-    )
-    if (!trackedApp) return
-    if (Date.now() - lastInputTime > 1000 * minLastInputSecs) {
-      if (lastInputTime < lastTrackTime) {
-        dispatch(
-          updateTrackingDataAfterInactivity({
-            trackedAppName: trackedApp.name,
-            lastInputTime: lastInputTime,
-            lastTrackTime: lastTrackTime
-          })
-        )
-        saveData(trackingData)
-        dispatch(setLastTrackTime(lastInputTime))
-      }
-      return
-    }
-    dispatch(setLastTrackTime(Date.now()))
-    dispatch(
-      updateTrackingData({
-        trackedAppName: trackedApp.name
-      })
-    )
-  }
-
-
   const handleStopTrack = () => {
     dispatch(setIsTracking(false))
     dispatch(stopTrackingAll())
@@ -190,4 +199,5 @@ const useTracking = () => {
     handleStopTrack
   }
 }
+
 export default useTracking
