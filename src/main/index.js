@@ -69,6 +69,11 @@ function createWindow() {
   ipcMain.handle('get-process-count', getProcessCountListener)
 
   ipcMain.handle('load-data', loadDataListener)
+  ipcMain.on('open-config-folder', () => {
+    const appDataPath = app.getPath('appData')
+    const dirPath = join(appDataPath, 'Chrolog/storage')
+    shell.openPath(dirPath)
+  })
 
   ipcMain.on('save-settings', (event, data) => {
     store.set('settings', data)

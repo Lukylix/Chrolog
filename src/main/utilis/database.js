@@ -4,7 +4,7 @@ import { join } from 'path'
 import fs from 'fs'
 
 const appDataPath = app.getPath('appData')
-const dirPath = join(appDataPath, 'Chrolog')
+const dirPath = join(appDataPath, 'Chrolog/storage')
 
 // Check if the directory exists, if not create it
 if (!fs.existsSync(dirPath)) {
