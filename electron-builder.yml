@@ -13,7 +13,7 @@ asarUnpack:
 afterSign: build/notarize.js
 win:
   executableName: chrolog
-  icon: ./resources/icon256.ico
+  icon: ./build/icon256.ico
 nsis:
   artifactName: ${name}-${version}-setup.${ext}
   shortcutName: ${productName}
@@ -35,7 +35,7 @@ linux:
     - deb
   maintainer: lukylix
   category: Utility
-  icon: ./resources/icon512.png
+  icon: ./build/icon512.png
 appImage:
   artifactName: ${name}-${version}.${ext}
 npmRebuild: false
