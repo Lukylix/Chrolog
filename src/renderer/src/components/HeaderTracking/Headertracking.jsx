@@ -21,18 +21,20 @@ export default function HeaderTracking() {
         </Link>
         <div className="icons-title">
           {path === '/' && (
-            <Link className="icon-title settings-icon" to="/settings">
-              <SettingsIcon fill="white" />
-            </Link>
+            <>
+              <Link className="icon-title settings-icon" to="/settings">
+                <SettingsIcon fill="white" />
+              </Link>
+              <a onClick={() => ipcRenderer.send('open-config-folder')} className="icon-title">
+                <FileIcon fill="white" />
+              </a>
+            </>
           )}
-          {(path === '/settings' || path === '/project') && (
+          {path !== '/' && (
             <Link className="icon-title" to="/">
               <BackIcon fill="white" />
             </Link>
           )}
-          <a onClick={() => ipcRenderer.send('open-config-folder')} className="icon-title">
-            <FileIcon fill="white" />
-          </a>
         </div>
       </div>
       {isTracking ? (

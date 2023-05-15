@@ -15,8 +15,8 @@ const store = new Store()
 
 function createWindow() {
   let icon
-  if (os.platform() === 'win32') icon = join(__dirname, '../../resources/icon256.ico')
-  else if (os.platform() === 'linux') icon = join(__dirname, '../../resources/icon512.png')
+  if (os.platform() === 'win32') icon = join(__dirname, '../../build/icon256.ico')
+  else if (os.platform() === 'linux') icon = join(__dirname, '../../build/icon512.png')
   const mainWindow = new BrowserWindow({
     width: 900,
     height: 670,
