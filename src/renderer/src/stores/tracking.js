@@ -16,7 +16,8 @@ const trackingSlice = createSlice({
     currentProcess: 0,
     completedProcess: 0,
     shouldTrack: false,
-    isTrackingRunning: false
+    isTrackingRunning: false,
+    shouldRestartTracking: false
   },
   reducers: {
     setIsReady: (state, action) => {
@@ -60,6 +61,9 @@ const trackingSlice = createSlice({
     },
     setIsTrackingRunning: (state, action) => {
       state.isTrackingRunning = action.payload
+    },
+    setShouldRestartTracking: (state, action) => {
+      state.shouldRestartTracking = action.payload
     }
   }
 })
@@ -79,7 +83,8 @@ export const {
   setCurrentProcess,
   setCompletedProcess,
   setShouldTrack,
-  setIsTrackingRunning
+  setIsTrackingRunning,
+  setShouldRestartTracking
 } = trackingSlice.actions
 
 export default trackingSlice.reducer

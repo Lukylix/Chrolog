@@ -46,7 +46,7 @@ const trackingDataSlice = createSlice({
           ...acc,
           [projectName]: {
             ...state[projectName],
-            trackingLogs: state[projectName]?.trackingLogs.map((log) => {
+            trackingLogs: state[projectName]?.trackingLogs?.map((log) => {
               if (!log.endDate)
                 return {
                   ...log,

@@ -20,7 +20,8 @@ import {
   setCurrentProcess,
   setCompletedProcess,
   setShouldTrack,
-  setIsTrackingRunning
+  setIsTrackingRunning,
+  setShouldRestartTracking
 } from '../stores/tracking.js'
 import { setIsFirstSettingsLoad, setSettings } from '../stores/settings.js'
 
@@ -40,12 +41,13 @@ const useTracking = (isMaster = false) => {
   const lastTrackTime = useSelector((state) => state.tracking.lastTrackTime)
   const minLastInputSecs = useSelector((state) => state.settings.minLastInputSecs)
   const shouldTrack = useSelector((state) => state.tracking.shouldTrack)
+  const shouldRestartTracking = useSelector((state) => state.tracking.shouldRestartTracking)
 
   const dispatch = useDispatch()
 
   const track = async () => {
     dispatch(setShouldTrack(false))
-    if (!isTracking || !isTrackingRunning) return
+    if (!isTracking) return
 
     ipcRenderer.on('window-closed', () => {
       dispatch(setIsTracking(false))
@@ -97,20 +99,21 @@ const useTracking = (isMaster = false) => {
   useEffect(() => {
     let shouldClear = false
       ; (async () => {
-        if (!isTrackingRunning && Object.keys(trackingData).length > 0 && isMaster) {
+        if (!isTrackingRunning && isMaster) {
           dispatch(setIsTrackingRunning(true))
           while (shouldClear === false) {
-            console.log('tracking')
+
             dispatch(setShouldTrack(true))
             await new Promise((resolve) => setTimeout(resolve, 1000))
           }
           dispatch(setIsTrackingRunning(false))
+          dispatch(setShouldRestartTracking(true))
         }
       })()
     return () => {
       shouldClear = true
     }
-  }, [isTrackingRunning, trackingData])
+  }, [shouldRestartTracking])
 
   useEffect(() => {
     if (shouldTrack && isMaster) track()
