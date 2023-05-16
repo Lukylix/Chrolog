@@ -48,10 +48,6 @@ const useTracking = (isMaster = false) => {
   const track = async () => {
     dispatch(setShouldTrack(false))
     if (!isTracking) return
-
-    ipcRenderer.on('window-closed', () => {
-      dispatch(setIsTracking(false))
-    })
     const activeApp = await ipcRenderer.invoke('get-active-app')
     if (!activeApp) return
     const allProjectTrackedApps = Object.keys(trackingData).reduce((acc, projectKey) => {
@@ -85,7 +81,7 @@ const useTracking = (isMaster = false) => {
     )
   }
   useEffect(() => {
-    ; (async () => {
+    ;(async () => {
       if (!isMaster) return
       const settings = await ipcRenderer.invoke('load-settings')
       dispatch(setSettings(settings))
@@ -98,18 +94,17 @@ const useTracking = (isMaster = false) => {
 
   useEffect(() => {
     let shouldClear = false
-      ; (async () => {
-        if (!isTrackingRunning && isMaster) {
-          dispatch(setIsTrackingRunning(true))
-          while (shouldClear === false) {
-
-            dispatch(setShouldTrack(true))
-            await new Promise((resolve) => setTimeout(resolve, 1000))
-          }
-          dispatch(setIsTrackingRunning(false))
-          dispatch(setShouldRestartTracking(true))
+    ;(async () => {
+      if (!isTrackingRunning && isMaster) {
+        dispatch(setIsTrackingRunning(true))
+        while (shouldClear === false) {
+          dispatch(setShouldTrack(true))
+          await new Promise((resolve) => setTimeout(resolve, 1000))
         }
-      })()
+        dispatch(setIsTrackingRunning(false))
+        dispatch(setShouldRestartTracking(true))
+      }
+    })()
     return () => {
       shouldClear = true
     }
@@ -161,6 +156,9 @@ const useTracking = (isMaster = false) => {
   }
 
   useEffect(() => {
+    ipcRenderer.on('window-closed', () => {
+      dispatch(setIsTracking(false))
+    })
     ipcRenderer.on('fetching-process-count', (event, count) => {
       dispatch(setCurrentProcess(count))
     })
@@ -172,10 +170,12 @@ const useTracking = (isMaster = false) => {
       dispatch(setIsGettingProcessList(false))
     })
     ipcRenderer.on('keyboard_event', () => {
+      console.log('keyboard event')
       dispatch(setLastInputTime(Date.now()))
     })
 
     ipcRenderer.on('mouse_event', () => {
+      console.log('mouse event')
       dispatch(setLastInputTime(Date.now()))
     })
     getProcessCount()

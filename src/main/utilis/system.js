@@ -1,10 +1,12 @@
 import ffi from '@lwahonen/ffi-napi'
 import ref from '@lwahonen/ref-napi'
-import { webContents, nativeImage } from 'electron'
+import { webContents, nativeImage, app } from 'electron'
 import { timeoutPromise } from './utilis'
 import fs from 'fs'
 import path from 'path'
 import x11 from 'x11'
+import { exec } from 'child_process'
+import sudo from 'sudo-prompt'
 
 const MAX_PATH = 260
 const PROCESS_QUERY_INFORMATION = 0x0400
@@ -61,7 +63,7 @@ if (process.platform === 'win32') {
   keyboardHookProc = ffi.Callback('long', ['int', 'long', 'long'], function (code, wParam, lParam) {
     // Send a 'keyboard_event' to all renderer processes
     webContents.getAllWebContents().forEach((webContent) => {
-      webContent.send('keyboard_event', { wParam, lParam })
+      webContent.send('keyboard_event')
     })
     return user32.CallNextHookEx(0, code, wParam, lParam)
   })
@@ -74,7 +76,7 @@ if (process.platform === 'win32') {
     if (currentTime - lastMouseEventTime > 100) {
       // Send a 'mouse_event' to all renderer processes
       webContents.getAllWebContents().forEach((webContent) => {
-        webContent.send('mouse_event', { wParam, lParam })
+        webContent.send('mouse_event')
       })
       lastMouseEventTime = currentTime
     }
@@ -99,45 +101,39 @@ const hookInputsWin32 = () => {
   }
 }
 
-const handleEventLinux = (ev) => {
-  if (ev.name === 'KeyPress') {
-    let currentTime = Date.now()
-
-    if (currentTime - lastMouseEventTime > 100) {
-      // Send a 'keyboard_event' to all renderer processes
-      webContents.getAllWebContents().forEach((webContent) => {
-        webContent.send('keyboard_event', { keyCode: ev.keycode })
-      })
-
-      lastMouseEventTime = currentTime
-    }
-  } else if (ev.name === 'ButtonPress') {
-    let currentTime = Date.now()
-
-    if (currentTime - lastMouseEventTime > 100) {
-      // Send a 'mouse_event' to all renderer processes
-      webContents.getAllWebContents().forEach((webContent) => {
-        webContent.send('mouse_event', { button: ev.button, x: ev.x, y: ev.y })
-      })
-
-      lastMouseEventTime = currentTime
-    }
-  }
-}
-
 const hookInputsLinux = () => {
-  x11.createClient(function (err, display) {
-    if (!display) {
-      throw new Error('Could not connect to X11 server')
+  const scriptPath = path.join(process.cwd(), './resources/hookLinuxInputs.js')
+  const options = {
+    name: 'Chrolog Inputs'
+  }
+  exec('which node', (error, stdout, stderr) => {
+    if (error) {
+      console.log(`error: ${error.message}`)
+      return
+    }
+    if (stderr) {
+      console.log(`stderr: ${stderr}`)
+      return
     }
 
-    X = display.client
-    root = display.screen[0].root
-
-    X.ChangeWindowAttributes(root, {
-      eventMask: x11.eventMask.KeyPress | x11.eventMask.ButtonPress
-    })
-    X.on('event', handleEventLinux)
+    // stdout contains the path to Node.js
+    const nodePath = stdout.trim()
+    sudo.exec(
+      `${nodePath} ${scriptPath} -- --log ${path.join(
+        app.getPath('appData'),
+        'Chrolog/input.log'
+      )}`,
+      options,
+      (error, stdout) => {
+        if (error) console.log('error: ', error)
+        if (stdout) {
+          console.log('stdout: ', stdout)
+          webContents.getAllWebContents().forEach((webContent) => {
+            webContent.send('keyboard_event')
+          })
+        }
+      }
+    )
   })
 }
 
@@ -163,6 +159,27 @@ const getActiveAppListenerWin32 = () => {
   }
   return null
 }
+function getActiveAppGnome() {
+  return new Promise((resolve, reject) => {
+    exec(
+      "dbus-send --session --print-reply --dest=org.gnome.Shell /org/gnome/Shell org.gnome.Shell.Eval string:'global.display.focus_window.get_app().get_id()'",
+      (error, stdout, stderr) => {
+        if (error) {
+          reject(error)
+        } else if (stderr) {
+          reject(new Error(stderr))
+        } else {
+          // stdout includes some additional text, we only want the last line which includes the application id
+          const lines = stdout.trim().split('\n')
+          const appIdLine = lines[lines.length - 1]
+          // the application id is quoted, so we remove the quotes
+          const appId = appIdLine.substring(1, appIdLine.length - 1)
+          resolve(appId)
+        }
+      }
+    )
+  })
+}
 
 const getActiveAppListenerLinux = () => {
   return new Promise((resolve) => {
@@ -177,7 +194,7 @@ const getActiveAppListenerLinux = () => {
         const root = display.screen[0].root
 
         X.InternAtom(false, '_NET_ACTIVE_WINDOW', (err, netActiveWindowAtom) => {
-          if (err) {
+          if (err || !netActiveWindowAtom) {
             resolve(null)
             return
           }
@@ -190,7 +207,7 @@ const getActiveAppListenerLinux = () => {
 
             const activeWindowId = prop.data.readUInt32LE(0)
             X.InternAtom(false, '_NET_WM_PID', (err, netWmPidAtom) => {
-              if (err) {
+              if (err || !netWmPidAtom) {
                 resolve(null)
                 return
               }
@@ -223,8 +240,15 @@ const getActiveAppListenerLinux = () => {
 }
 
 export const getActiveAppListener = async () => {
-  if (process.platform === 'win32') return getActiveAppListenerWin32()
-  else if (process.platform === 'linux') return await getActiveAppListenerLinux()
+  if (process.platform === 'win32') {
+    return getActiveAppListenerWin32()
+  } else if (process.platform === 'linux') {
+    if (process.env.GNOME_DESKTOP_SESSION_ID) {
+      return await getActiveAppGnome()
+    } else {
+      return await getActiveAppListenerLinux()
+    }
+  }
 }
 
 // ...
@@ -322,7 +346,12 @@ const getProcessesListenerWindows = async () => {
 const getProcessesListenerLinux = async () => {
   if (lastProcessFetchTime + 1000 > Date.now() || processes.length > 0) return
   console.log('get-windows-with-icons')
-  let processDirs = fs.readdirSync('/proc').filter((name) => !isNaN(Number(name)) && name !== '1')
+  let processDirs = []
+  try {
+    processDirs = fs.readdirSync('/proc').filter((name) => !isNaN(Number(name)) && name !== '1')
+  } catch (error) {
+    if (error.code !== 'EACCES' && error.code !== 'ENOENT') console.error(error)
+  }
 
   processes = processDirs.map((pid, i) => {
     webContents.getAllWebContents().forEach((webContent) => {

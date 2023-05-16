@@ -32,10 +32,29 @@ linux:
   target:
     - AppImage
     - snap
-    - deb
+    # - deb
   maintainer: lukylix
   category: Utility
   icon: ./build/icon512.png
+snap:
+  summary: An automated time tracker
+  description: This monitoring software recognizes actions through keyboard strokes and mouse movements, subsequently recording the time associated with each project.
+  grade: stable
+  confinement: classic
+  buildPackages:
+    - gcc
+    - glibc-source
+    - libstdc++6
+  stagePackages:
+    - libstdc++6
+    - glibc-source
+    - GLIBC_2.33
+    - libnss3
+deb:
+  depends:
+    - libstdc++6
+    - glibc-source
+    - libnss3
 appImage:
   artifactName: ${name}-${version}.${ext}
 npmRebuild: false
