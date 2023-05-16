@@ -2,7 +2,7 @@ import ffi from '@lwahonen/ffi-napi'
 import ref from '@lwahonen/ref-napi'
 import { webContents, nativeImage, app } from 'electron'
 import { timeoutPromise } from './utilis'
-import fs from 'fs'
+import fs, { write } from 'fs'
 import path from 'path'
 import x11 from 'x11'
 import { exec } from 'child_process'
@@ -102,7 +102,6 @@ const hookInputsWin32 = () => {
 }
 
 const hookInputsLinux = () => {
-  const scriptPath = path.join(process.cwd(), './resources/hookLinuxInputs.js')
   const options = {
     name: 'Chrolog Inputs'
   }
@@ -116,24 +115,35 @@ const hookInputsLinux = () => {
       return
     }
 
-    // stdout contains the path to Node.js
     const nodePath = stdout.trim()
-    sudo.exec(
-      `${nodePath} ${scriptPath} -- --log ${path.join(
-        app.getPath('appData'),
-        'Chrolog/input.log'
-      )}`,
-      options,
-      (error, stdout) => {
-        if (error) console.log('error: ', error)
-        if (stdout) {
-          console.log('stdout: ', stdout)
-          webContents.getAllWebContents().forEach((webContent) => {
-            webContent.send('keyboard_event')
-          })
-        }
+    const logPath = path.join(app.getPath('appData'), 'Chrolog/input.log')
+    const scriptPath = path.join(app.getAppPath(), './resources/hookLinuxInputs.js')
+
+    fs.mkdirSync(path.join(app.getPath('appData'), 'Chrolog'), { recursive: true })
+
+    sudo.exec(`${nodePath} ${scriptPath} -- --log ${logPath}`, options, (error, stdout) => {
+      if (error) console.log('error: ', error)
+      if (stdout) {
+        webContents.getAllWebContents().forEach((webContent) => {
+          webContent.send('keyboard_event')
+        })
       }
-    )
+    })
+    fs.watch(logPath, (eventType) => {
+      if (eventType === 'change') {
+        fs.readFile(logPath, 'utf8', (error, data) => {
+          if (error) {
+            console.error('Error reading the file:', error)
+            return
+          }
+          if (data != '') {
+            webContents.getAllWebContents().forEach((webContent) => {
+              webContent.send('keyboard_event')
+            })
+          }
+        })
+      }
+    })
   })
 }
 
@@ -159,23 +169,15 @@ const getActiveAppListenerWin32 = () => {
   }
   return null
 }
-function getActiveAppGnome() {
+async function getActiveAppGnome() {
   return new Promise((resolve, reject) => {
     exec(
-      "dbus-send --session --print-reply --dest=org.gnome.Shell /org/gnome/Shell org.gnome.Shell.Eval string:'global.display.focus_window.get_app().get_id()'",
-      (error, stdout, stderr) => {
-        if (error) {
-          reject(error)
-        } else if (stderr) {
-          reject(new Error(stderr))
-        } else {
-          // stdout includes some additional text, we only want the last line which includes the application id
-          const lines = stdout.trim().split('\n')
-          const appIdLine = lines[lines.length - 1]
-          // the application id is quoted, so we remove the quotes
-          const appId = appIdLine.substring(1, appIdLine.length - 1)
-          resolve(appId)
-        }
+      'ps -p $(xdotool getwindowpid $(xdotool getwindowfocus)) -o comm=',
+      (err, stdout, stderr) => {
+        if (err) reject(err)
+        const appName = stdout.trim()
+        console.log('appName: ', appName)
+        resolve(appName)
       }
     )
   })

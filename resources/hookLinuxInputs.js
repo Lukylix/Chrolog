@@ -15,12 +15,26 @@ for (let i = 0; i < args.length; i++) {
   }
 }
 
+fs.writeFileSync(logPath, '')
+
+exec(`chmod +rw ${logPath}`, options, (error, stdout, stderr) => {
+  if (error || stderr) console.error(error || stderr)
+})
+
 exec(`logkeys -k && logkeys --start --output ${logPath}`, options, (error, stdout, stderr) => {
   if (error || stderr) console.error(error || stderr)
 })
 
 fs.watch(logPath, (eventType) => {
   if (eventType === 'change') {
-    console.log('keyboard_event')
+    fs.readFile(logPath, 'utf8', (error, data) => {
+      if (error) {
+        console.error('Error reading the file:', error)
+        return
+      }
+      if (data != '') {
+        fs.writeFileSync(logPath, '')
+      }
+    })
   }
 })
