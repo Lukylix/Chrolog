@@ -3,4 +3,4 @@ semi: false
 printWidth: 100
 trailingComma: none
 linebreak: lf
-
+tabWidth: 1
