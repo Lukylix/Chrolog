@@ -3,7 +3,6 @@ import { createSlice } from '@reduxjs/toolkit'
 const trackingSlice = createSlice({
   name: 'tracking',
   initialState: {
-    isReady: false,
     isTracking: false,
     lastInputTime: Date.now(),
     lastTrackTime: Date.now(),
@@ -20,9 +19,6 @@ const trackingSlice = createSlice({
     shouldRestartTracking: false
   },
   reducers: {
-    setIsReady: (state, action) => {
-      state.isReady = action.payload
-    },
     setIsTracking: (state, action) => {
       state.isTracking = action.payload
     },
@@ -69,8 +65,6 @@ const trackingSlice = createSlice({
 })
 
 export const {
-  setIsAlmostReady,
-  setIsReady,
   setIsTracking,
   setLastInputTime,
   setLastTrackTime,

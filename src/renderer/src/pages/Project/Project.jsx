@@ -47,7 +47,6 @@ export default function Project() {
   const { name } = useParams()
   const trackingData = useSelector((state) => state.trackingData)
   const project = trackingData[name]
-  const isReady = useSelector((state) => state.tracking.isReady)
   const currentProject = useSelector((state) => state.tracking.currentProject)
   const trackedApps = useSelector((state) => state.tracking.trackedApps)
   const processes = useSelector((state) => state.processes)

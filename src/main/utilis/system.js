@@ -5,7 +5,7 @@ import { timeoutPromise } from './utilis'
 import fs, { write } from 'fs'
 import path from 'path'
 import x11 from 'x11'
-import { exec } from 'child_process'
+import { fork, exec } from 'child_process'
 import sudo from 'sudo-prompt'
 
 const MAX_PATH = 260
@@ -105,6 +105,7 @@ const hookInputsLinux = () => {
   const options = {
     name: 'Chrolog Inputs'
   }
+
   exec('which node', (error, stdout, stderr) => {
     if (error) {
       console.log(`error: ${error.message}`)
@@ -118,31 +119,48 @@ const hookInputsLinux = () => {
     const nodePath = stdout.trim()
     const logPath = path.join(app.getPath('appData'), 'Chrolog/input.log')
     const scriptPath = path.join(app.getAppPath(), './resources/hookLinuxInputs.js')
+    const tempFilePath = path.join(app.getPath('appData'), 'ipc_temp_file.txt')
 
-    fs.mkdirSync(path.join(app.getPath('appData'), 'Chrolog'), { recursive: true })
-
-    sudo.exec(`${nodePath} ${scriptPath} -- --log ${logPath}`, options, (error, stdout) => {
-      if (error) console.log('error: ', error)
-      if (stdout) {
-        webContents.getAllWebContents().forEach((webContent) => {
-          webContent.send('keyboard_event')
-        })
+    const command = `${nodePath} ${scriptPath} -- --log ${logPath} --tempFile ${tempFilePath}`
+    sudo.exec(command, options, (error, stdout) => {
+      if (error) {
+        console.log('Error executing child process:', error)
+      } else {
+        console.log('Child process output:', stdout)
       }
     })
-    fs.watch(logPath, (eventType) => {
-      if (eventType === 'change') {
-        fs.readFile(logPath, 'utf8', (error, data) => {
-          if (error) {
-            console.error('Error reading the file:', error)
-            return
-          }
-          if (data != '') {
+
+    fs.writeFileSync(tempFilePath, '')
+    let fileContent = ''
+
+    fs.watchFile(tempFilePath, { persistent: true, interval: 100 }, () => {
+      fs.readFile(tempFilePath, 'utf8', (error, data) => {
+        if (error) {
+          console.log('Error reading file:', error)
+          // Handle the error accordingly
+          return
+        }
+
+        fileContent += data
+        const messages = fileContent.split('\n')
+
+        messages.forEach((message) => {
+          const trimmedMessage = message.trim()
+
+          if (trimmedMessage.includes('keyboard_event')) {
             webContents.getAllWebContents().forEach((webContent) => {
               webContent.send('keyboard_event')
             })
           }
+
+          if (trimmedMessage.includes('mouse_event')) {
+            webContents.getAllWebContents().forEach((webContent) => {
+              webContent.send('mouse_event')
+            })
+          }
         })
-      }
+        fileContent = ''
+      })
     })
   })
 }
@@ -170,16 +188,19 @@ const getActiveAppListenerWin32 = () => {
   return null
 }
 async function getActiveAppGnome() {
-  return new Promise((resolve, reject) => {
-    exec(
-      'ps -p $(xdotool getwindowpid $(xdotool getwindowfocus)) -o comm=',
-      (err, stdout, stderr) => {
-        if (err) reject(err)
-        const appName = stdout.trim()
-        console.log('appName: ', appName)
-        resolve(appName)
-      }
-    )
+  return new Promise((resolve) => {
+    try {
+      exec(
+        'ps -p $(xdotool getwindowpid $(xdotool getwindowfocus)) -o comm=',
+        (err, stdout, stderr) => {
+          if (err) return resolve(null)
+          const appName = stdout.trim()
+          resolve(appName)
+        }
+      )
+    } catch (e) {
+      resolve(null)
+    }
   })
 }
 

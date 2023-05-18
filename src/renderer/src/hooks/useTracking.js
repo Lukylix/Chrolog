@@ -10,7 +10,6 @@ import {
 import { setProcesses } from '../stores/processes.js'
 
 import {
-  setIsReady,
   setIsTracking,
   setLastInputTime,
   setLastTrackTime,
@@ -170,7 +169,6 @@ const useTracking = (isMaster = false) => {
       dispatch(setIsGettingProcessList(false))
     })
     ipcRenderer.on('keyboard_event', () => {
-      console.log('keyboard event')
       dispatch(setLastInputTime(Date.now()))
     })
 
@@ -180,8 +178,6 @@ const useTracking = (isMaster = false) => {
     })
     getProcessCount()
     loadData()
-
-    dispatch(setIsReady(true))
   }, [])
 
   useEffect(() => {

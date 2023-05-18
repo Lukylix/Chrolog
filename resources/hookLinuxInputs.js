@@ -1,40 +1,52 @@
-import fs from 'fs'
 import { exec } from 'child_process'
+import ChrologIOhook from 'chrolog-iohook'
+import fs from 'fs'
 
-const options = {
-  name: 'Chrolog inputs hook'
-}
+const tempFilePath =
+  process.argv[
+    process.argv.findIndex((arg, index) => arg === '--tempFile' && process.argv[index + 1]) + 1
+  ]
 
-// Process the arguments
-let logPath
-const args = process.argv.slice(2)
-for (let i = 0; i < args.length; i++) {
-  if (args[i] === '--log' && i < args.length - 1) {
-    logPath = args[i + 1]
-    break
+fs.writeFileSync(tempFilePath, '')
+
+exec(`chmod +rw ${tempFilePath}`, (error) => {
+  if (error) {
+    console.error(error)
+    process.exit(1)
   }
+})
+
+// Function to send message to the parent process
+function send(message) {
+  fs.writeFileSync(tempFilePath, message)
 }
+console.log('Creating instance...')
 
-fs.writeFileSync(logPath, '')
+const instance = new ChrologIOhook()
 
-exec(`chmod +rw ${logPath}`, options, (error, stdout, stderr) => {
-  if (error || stderr) console.error(error || stderr)
+console.log('Hooking inputs...')
+
+// Set keyboard callback
+instance.setKeyboardCallback(() => {
+  send('keyboard_event')
 })
 
-exec(`logkeys -k && logkeys --start --output ${logPath}`, options, (error, stdout, stderr) => {
-  if (error || stderr) console.error(error || stderr)
+console.log('Hooking mouse...')
+
+instance.setMouseCallback(() => {
+  send('mouse_event')
 })
 
-fs.watch(logPath, (eventType) => {
-  if (eventType === 'change') {
-    fs.readFile(logPath, 'utf8', (error, data) => {
-      if (error) {
-        console.error('Error reading the file:', error)
-        return
-      }
-      if (data != '') {
-        fs.writeFileSync(logPath, '')
-      }
-    })
+console.log('Starting logger...')
+
+// Start the logger
+instance.log()
+
+console.log('Inputs hooked')
+
+// Cleanup the temp file on exit
+process.on('exit', () => {
+  if (fs.existsSync(tempFilePath)) {
+    fs.unlinkSync(tempFilePath)
   }
 })
