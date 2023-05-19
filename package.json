@@ -50,7 +50,6 @@
   "electron": "23.3.0",
   "electron-builder": "^23.6.0",
   "electron-vite": "^1.0.21",
-  "eslint": "^8.36.0",
   "eslint-config-prettier": "^8.8.0",
   "eslint-plugin-prettier": "^4.2.1",
   "eslint-plugin-react": "^7.32.2",
