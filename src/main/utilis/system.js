@@ -5,8 +5,9 @@ import { timeoutPromise } from './utilis'
 import fs, { write } from 'fs'
 import path from 'path'
 import x11 from 'x11'
-import { fork, exec } from 'child_process'
+import { exec } from 'child_process'
 import sudo from 'sudo-prompt'
+import Chrolog from 'chrolog-iohook'
 
 const MAX_PATH = 260
 const PROCESS_QUERY_INFORMATION = 0x0400
@@ -21,16 +22,8 @@ const WH_MOUSE_LL = 14
 let voidPtr = ref.refType(ref.types.void)
 let stringPtr = ref.refType(ref.types.CString)
 
-let kernel32,
-  psapi,
-  user32,
-  keyboardHookProc,
-  mouseHookProc,
-  hKeyboardHook,
-  hMouseHook,
-  lastMouseEventTime,
-  X,
-  root
+let kernel32, psapi, user32
+
 let lastProcessFetchTime = 0
 let processes = []
 let processesToBeFetched = 0
@@ -53,52 +46,24 @@ if (process.platform === 'win32') {
     GetForegroundWindow: ['int32', []],
     GetWindowTextA: ['long', ['long', stringPtr, 'long']],
     GetWindowThreadProcessId: ['uint32', ['int32', 'pointer']],
-    EnumWindows: ['int', [voidPtr, 'int32']],
-    SetWindowsHookExA: ['int', ['int', 'pointer', 'int', 'int']],
-    CallNextHookEx: ['int', ['long', 'int', 'long', 'long']],
-    UnhookWindowsHookEx: ['bool', ['int']],
-    IsWindowVisible: ['bool', ['long']]
-  })
-
-  keyboardHookProc = ffi.Callback('long', ['int', 'long', 'long'], function (code, wParam, lParam) {
-    // Send a 'keyboard_event' to all renderer processes
-    webContents.getAllWebContents().forEach((webContent) => {
-      webContent.send('keyboard_event')
-    })
-    return user32.CallNextHookEx(0, code, wParam, lParam)
-  })
-
-  lastMouseEventTime = Date.now()
-
-  mouseHookProc = ffi.Callback('long', ['int', 'long', 'long'], function (code, wParam, lParam) {
-    let currentTime = Date.now()
-
-    if (currentTime - lastMouseEventTime > 100) {
-      // Send a 'mouse_event' to all renderer processes
-      webContents.getAllWebContents().forEach((webContent) => {
-        webContent.send('mouse_event')
-      })
-      lastMouseEventTime = currentTime
-    }
-    return user32.CallNextHookEx(0, code, wParam, lParam)
+    EnumWindows: ['int', [voidPtr, 'int32']]
   })
 } else if (process.platform === 'linux') {
-  lastMouseEventTime = Date.now()
 }
 
 const hookInputsWin32 = () => {
-  if (!hKeyboardHook) {
-    hKeyboardHook = user32.SetWindowsHookExA(WH_KEYBOARD_LL, keyboardHookProc, 0, 0)
-    if (hKeyboardHook === 0) {
-      throw new Error('SetWindowsHookExA for keyboard failed')
-    }
-  }
-  if (!hMouseHook) {
-    hMouseHook = user32.SetWindowsHookExA(WH_MOUSE_LL, mouseHookProc, 0, 0)
-    if (hMouseHook === 0) {
-      throw new Error('SetWindowsHookExA for mouse failed')
-    }
-  }
+  const instance = new Chrolog()
+  instance.setKeyboardCallback(() => {
+    webContents.getAllWebContents().forEach((webContent) => {
+      webContent.send('keyboard_event')
+    })
+  })
+  instance.setMouseCallback(() => {
+    webContents.getAllWebContents().forEach((webContent) => {
+      webContent.send('mouse_event')
+    })
+  })
+  instance.log()
 }
 
 const hookInputsLinux = () => {
