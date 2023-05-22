@@ -76,7 +76,7 @@ export default function Project() {
       isFirst = true
     let centPercent = projectAppsSorted.reduce((acc, log) => acc + log.elapsedTime, 0)
     const min = 0.005
-    const max = 0.1
+    const max = 0.01
     const inputMax = 100
     const inputMin = 0
     let scaled =
@@ -106,7 +106,7 @@ export default function Project() {
     return projectBars
   }, [projectAppsSorted])
 
-  const { handleCreateProject, saveData, handleTrack } = useTracking()
+  const { handleCreateProject, handleTrack } = useTracking()
 
   useEffect(() => {
     dispatch(setCurrentProject(name))
@@ -199,7 +199,6 @@ export default function Project() {
                           dispatch(toggleProject({ projectName: name }))
                           if (project.toggled) {
                             dispatch(stopTracking({ projectName: name }))
-                            saveData(trackingData)
                           }
                         }}
                         className={project?.toggled ? 'bg-red' : 'bg-green'}

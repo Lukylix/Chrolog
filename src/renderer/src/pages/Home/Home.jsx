@@ -32,7 +32,7 @@ const Home = () => {
   const [inputValue, setInputValue] = useState('')
   const dispatch = useDispatch()
 
-  const { handleCreateProject, saveData, handleTrack } = useTracking()
+  const { handleCreateProject, handleTrack } = useTracking()
 
   useEffect(() => {
     if (isTracking) handleTrack()
@@ -135,7 +135,6 @@ const Home = () => {
                             dispatch(toggleProject({ projectName: projectKey }))
                             if (trackingData[projectKey].toggled) {
                               dispatch(stopTracking({ projectName: projectKey }))
-                              saveData(trackingData)
                             }
                           }}
                           className={project?.toggled ? 'bg-red' : 'bg-green'}

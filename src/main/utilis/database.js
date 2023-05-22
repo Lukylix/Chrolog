@@ -36,7 +36,7 @@ export async function saveDataListener(event, trackingData) {
 
   // Create table for tracking data if it doesn't exist
   await run(
-    'CREATE TABLE if not exists tracking_data (projectName TEXT, appName TEXT, elapsedTime INTEGER, startDate INTEGER, endDate INTEGER)'
+    'CREATE TABLE if not exists tracking_data (id INTEGER PRIMARY KEY AUTOINCREMENT, projectName TEXT, appName TEXT, elapsedTime INTEGER, startDate INTEGER, endDate INTEGER)'
   )
 
   const selectProjectSql = `SELECT * FROM project_data WHERE name = ?`
@@ -46,8 +46,8 @@ export async function saveDataListener(event, trackingData) {
   const selectAppSql = `SELECT * FROM app_data WHERE projectName = ? AND appName = ?`
   const insertAppSql = `INSERT INTO app_data (projectName, appName, icon, pid) VALUES (?, ?, ?, ?)`
 
-  const selectTrackingSql = `SELECT * FROM tracking_data WHERE projectName = ? AND appName = ?`
-  const updateTrackingSql = `UPDATE tracking_data SET elapsedTime = ?, startDate = ?, endDate = ? WHERE projectName = ? AND appName = ?`
+  const selectTrackingSql = `SELECT * FROM tracking_data WHERE logId = ?`
+  const updateTrackingSql = `UPDATE tracking_data SET elapsedTime = ?, startDate = ?, endDate = ? WHERE logId = ?`
   const insertTrackingSql = `INSERT INTO tracking_data (projectName, appName, elapsedTime, startDate, endDate) VALUES (?, ?, ?, ?, ?)`
 
   for (const projectName of Object.keys(trackingData)) {
@@ -96,19 +96,20 @@ export async function saveDataListener(event, trackingData) {
     if (!trackingLogs?.length) continue
     for (const trackingLog of trackingLogs) {
       const {
+        logId,
         name: appName,
         elapsedTime: appElapsedTime,
         startDate: appStartDate,
         endDate: appEndDate
       } = trackingLog
 
-      db.get(selectTrackingSql, [projectName, appName], async function (err, row) {
+      db.get(selectTrackingSql, [logId], async function (err, row) {
         if (err) return console.error(err.message)
 
         if (row) {
           await run(
             updateTrackingSql,
-            [appElapsedTime, appStartDate, appEndDate, projectName, appName],
+            [appElapsedTime, appStartDate, appEndDate, logId],
             function (err) {
               if (err) return console.error(err.message)
             }
@@ -125,6 +126,45 @@ export async function saveDataListener(event, trackingData) {
       })
     }
   }
+}
+
+// Create a tracking log
+export async function createTrackingLogListener(event, trackingData) {
+  const { projectName, trackingLog } = trackingData
+  const { name, elapsedTime, startDate, endDate } = trackingLog
+  const insertTrackingSql = `INSERT INTO tracking_data (projectName, appName, elapsedTime, startDate, endDate) VALUES (?, ?, ?, ?, ?)`
+  return await run(insertTrackingSql, [projectName, name, elapsedTime, startDate, endDate])
+}
+
+// Update a tracking log
+export async function updateTrackingLogListener(event, trackingLog) {
+  const { id, appName, elapsedTime, startDate, endDate } = trackingLog
+  const updateTrackingSql = `UPDATE tracking_data SET elapsedTime = ?, startDate = ?, endDate = ? WHERE id = ?`
+  return await run(updateTrackingSql, [elapsedTime, startDate, endDate, id])
+}
+
+// Delete a tracking log
+export async function deleteTrackingLogListener(event, logId) {
+  const deleteTrackingSql = `DELETE FROM tracking_data WHERE logId = ?`
+  return await run(deleteTrackingSql, [logId])
+}
+
+// Update project properties (except trackingLogs)
+export async function updateProjectPropertiesListener(event, projectData) {
+  const { projectName, toggled, elapsedTime, startDate, endDate } = projectData
+  const updateProjectSql = `UPDATE project_data SET toggled = ?, elapsedTime = ?, startDate = ?, endDate = ? WHERE name = ?`
+  return await run(updateProjectSql, [toggled, elapsedTime, startDate, endDate, projectName])
+}
+
+export async function createProjectListener(event, projectData) {
+  const { projectName, toggled, elapsedTime, startDate, endDate } = projectData
+  const insertProjectSql = `INSERT INTO project_data (name, toggled, elapsedTime, startDate, endDate) VALUES (?, ?, ?, ?, ?)`
+  const project = await run(insertProjectSql, [projectName, toggled, elapsedTime, startDate, endDate])
+  const insertAppSql = `INSERT INTO app_data (projectName, appName, icon, pid) VALUES (?, ?, ?, ?)`
+  for (const app of projectData.apps) {
+    await run(insertAppSql, [projectName, app.name, app.icon, app.pid])
+  }
+  return project
 }
 
 
@@ -170,7 +210,7 @@ export const loadDataListener = () => {
 
           // Load tracking data
           await run(
-            'CREATE TABLE if not exists tracking_data (projectName TEXT, appName TEXT, elapsedTime INTEGER, startDate INTEGER, endDate INTEGER)'
+            'CREATE TABLE if not exists tracking_data (id INTEGER PRIMARY KEY AUTOINCREMENT, projectName TEXT, appName TEXT, elapsedTime INTEGER, startDate INTEGER, endDate INTEGER)'
           )
           db.all('SELECT * FROM tracking_data', (err, trackingRows) => {
             if (err) return reject(err)
@@ -181,7 +221,8 @@ export const loadDataListener = () => {
                   name: trackingRow.appName,
                   elapsedTime: trackingRow.elapsedTime,
                   startDate: trackingRow.startDate,
-                  endDate: trackingRow.endDate
+                  endDate: trackingRow.endDate,
+                  id: trackingRow.id
                 })
               }
             })

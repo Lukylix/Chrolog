@@ -1,5 +1,8 @@
 import { createSlice } from '@reduxjs/toolkit'
 
+const { ipcRenderer } = window.require('electron')
+
+
 const trackingDataSlice = createSlice({
   name: 'trackingData',
   initialState: {},
@@ -9,6 +12,7 @@ const trackingDataSlice = createSlice({
     },
     createProject: (state, action) => {
       const { projectName, projectData } = action.payload
+      ipcRenderer.send("create-project", { projectName, ...projectData })
       return { ...state, [projectName]: projectData }
     },
     toggleProject: (state, action) => {
@@ -47,12 +51,20 @@ const trackingDataSlice = createSlice({
           [projectName]: {
             ...state[projectName],
             trackingLogs: state[projectName]?.trackingLogs?.map((log) => {
-              if (!log.endDate)
+              if (!log.endDate) {
+                ipcRenderer.send("create-tracking-log", {
+                  projectName, trackingLog: {
+                    ...log,
+                    elapsedTime: Date.now() - log.startDate,
+                    endDate: Date.now()
+                  }
+                })
                 return {
                   ...log,
                   elapsedTime: Date.now() - log.startDate,
                   endDate: Date.now()
                 }
+              }
               return log
             })
           }
@@ -103,6 +115,7 @@ const trackingDataSlice = createSlice({
             elapsedTime: 0
           })
         }
+
         state[projectName] = {
           ...project,
           elapsedTime: elapsedTime + 1000,
@@ -128,8 +141,15 @@ const trackingDataSlice = createSlice({
         const trackingLogs = (project?.trackingLogs || [])
           .map((log) => {
             if (log.name === trackedAppName && !log.endDate) {
-              console.log(`End tracking ${trackedAppName}`)
               const elapsedTime = trackedApp.elapsedTime + 1000 - (Date.now() - lastInputTime)
+              if (elapsedTime > minLogSecs * 1000) ipcRenderer.send("create-tracking-log", {
+                projectName, trackingLog: {
+                  ...log,
+                  elapsedTime: elapsedTime,
+                  toKeep: elapsedTime > minLogSecs * 1000,
+                  endDate: Date.now()
+                }
+              })
               return {
                 ...log,
                 elapsedTime: elapsedTime,
@@ -144,10 +164,15 @@ const trackingDataSlice = createSlice({
             delete log.toKeep
             return log
           })
+        ipcRenderer.send("update-project-properties", {
+          ...project,
+          elapsedTime: elapsedTime + 1000,
+          trackingLogs
+        })
         state[projectName] = {
           ...project,
-          elapsedTime: elapsedTime + 1000 - (lastTrackTime - lastInputTime),
-          trackingLogs: trackingLogs
+          elapsedTime: elapsedTime + 1000,
+          trackingLogs
         }
       }
     }

@@ -67,7 +67,6 @@ const useTracking = (isMaster = false) => {
             lastTrackTime: lastTrackTime
           })
         )
-        saveData(trackingData)
         dispatch(setLastTrackTime(lastInputTime))
       }
       return
@@ -80,7 +79,7 @@ const useTracking = (isMaster = false) => {
     )
   }
   useEffect(() => {
-    ;(async () => {
+    ; (async () => {
       if (!isMaster) return
       const settings = await ipcRenderer.invoke('load-settings')
       dispatch(setSettings(settings))
@@ -93,17 +92,17 @@ const useTracking = (isMaster = false) => {
 
   useEffect(() => {
     let shouldClear = false
-    ;(async () => {
-      if (!isTrackingRunning && isMaster) {
-        dispatch(setIsTrackingRunning(true))
-        while (shouldClear === false) {
-          dispatch(setShouldTrack(true))
-          await new Promise((resolve) => setTimeout(resolve, 1000))
+      ; (async () => {
+        if (!isTrackingRunning && isMaster) {
+          dispatch(setIsTrackingRunning(true))
+          while (shouldClear === false) {
+            dispatch(setShouldTrack(true))
+            await new Promise((resolve) => setTimeout(resolve, 1000))
+          }
+          dispatch(setIsTrackingRunning(false))
+          dispatch(setShouldRestartTracking(true))
         }
-        dispatch(setIsTrackingRunning(false))
-        dispatch(setShouldRestartTracking(true))
-      }
-    })()
+      })()
     return () => {
       shouldClear = true
     }
@@ -137,12 +136,6 @@ const useTracking = (isMaster = false) => {
     console.log('loaded data: ', trackingDataRes)
   }
 
-  const saveData = (trackingData) => {
-    if (Object.keys(trackingData).length === 0) return
-    console.log('saving data: ', trackingData)
-    ipcRenderer.send('save-data', trackingData)
-  }
-
   const getProcesses = async () => {
     if (processes.length > 0 || isGettingProcessList) return
     dispatch(setIsGettingProcessList(true))
@@ -173,7 +166,6 @@ const useTracking = (isMaster = false) => {
     })
 
     ipcRenderer.on('mouse_event', () => {
-      console.log('mouse event')
       dispatch(setLastInputTime(Date.now()))
     })
     getProcessCount()
@@ -187,14 +179,12 @@ const useTracking = (isMaster = false) => {
   const handleStopTrack = () => {
     dispatch(setIsTracking(false))
     dispatch(stopTrackingAll())
-    saveData(trackingData)
   }
 
   return {
     handleTrack: () => dispatch(setIsTracking(true)),
     handleCreateProject,
     loadData,
-    saveData,
     handleStopTrack
   }
 }
