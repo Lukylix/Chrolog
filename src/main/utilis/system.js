@@ -363,7 +363,7 @@ const getProcessesListenerLinux = async () => {
       exeLink
     }
   })
-  processes = [...new Set(processes.map((p) => p.name))].map((name) => {
+  processes = [...new Set(processes.map((p) => p.name.toLowerCase()))].map((name) => {
     const process = processes.find((p) => p.name === name)
     const image = nativeImage.createFromPath(process.exeLink)
     return {
