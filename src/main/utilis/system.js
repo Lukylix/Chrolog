@@ -83,7 +83,10 @@ const hookInputsLinux = () => {
 
     const nodePath = stdout.trim()
     const logPath = path.join(app.getPath('appData'), 'Chrolog/input.log')
-    const scriptPath = path.join(app.getAppPath(), './resources/hookLinuxInputs.js')
+    let scriptPath = path.join(app.getAppPath(), './resources/hookLinuxInputs.js')
+    if (process.platform === 'linux') {
+      scriptPath = scriptPath.replace('app.asar', 'app.asar.unpacked')
+    }
     const tempFilePath = path.join(app.getPath('appData'), 'ipc_temp_file.txt')
 
     const command = `${nodePath} ${scriptPath} -- --log ${logPath} --tempFile ${tempFilePath}`
@@ -348,28 +351,16 @@ const getProcessesListenerLinux = async () => {
     const processPath = path.join('/proc', pid)
     const cmdline = fs.readFileSync(path.join(processPath, 'cmdline')).toString().split('\0')
     const name = cmdline[0].split('/').pop().split(' ')[0]
-    let exeLink = ''
-    try {
-      exeLink = fs.readlinkSync(path.join(processPath, 'exe'))
-    } catch (error) {
-      if (error.code !== 'EACCES' && error.code !== 'ENOENT') {
-        throw error
-      }
-      // if 'EACCES', permission was denied, so we continue without the link
-    }
     return {
       pid: Number(pid),
-      name,
-      exeLink
+      name
     }
   })
-  processes = [...new Set(processes.map((p) => p.name.toLowerCase()))].map((name) => {
+  processes = [...new Set(processes.map((p) => p.name))].map((name) => {
     const process = processes.find((p) => p.name === name)
-    const image = nativeImage.createFromPath(process.exeLink)
     return {
       pid: process.pid,
-      name: process.name,
-      image: image.toDataURL()
+      name: process.name
     }
   })
   console.log("Sending 'processes-event' to all renderer processes")

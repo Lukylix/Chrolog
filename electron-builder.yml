@@ -9,7 +9,7 @@ files:
   - '!{.eslintignore,.eslintrc.cjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md}'
   - '!{.env,.env.*,.npmrc,pnpm-lock.yaml}'
 asarUnpack:
-  - resources/**
+  - resources/*
 afterSign: build/notarize.js
 win:
   executableName: chrolog
@@ -36,6 +36,9 @@ linux:
   maintainer: lukylix
   category: Utility
   icon: ./build/icon512.png
+  extraResources:
+    - from: resources
+      to: resources
 snap:
   summary: An automated time tracker
   description: This monitoring software recognizes actions through keyboard strokes and mouse movements, subsequently recording the time associated with each project.
@@ -57,6 +60,7 @@ deb:
     - libnss3
 appImage:
   artifactName: ${name}-${version}.${ext}
+
 npmRebuild: false
 # publish:
 #   provider: generic
