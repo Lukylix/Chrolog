@@ -57,7 +57,7 @@ const useTracking = (isMaster = false) => {
     const trackedApp = allProjectTrackedApps.find(
       (app) => app.name.toLowerCase().trim() === activeApp.toLowerCase().trim()
     )
-    if (!trackedApp) return
+    if (!trackedApp) return dispatch(stopTrackingAll())
     if (Date.now() - lastInputTime > 1000 * minLastInputSecs) {
       if (lastInputTime < lastTrackTime) {
         dispatch(
@@ -79,7 +79,7 @@ const useTracking = (isMaster = false) => {
     )
   }
   useEffect(() => {
-    ; (async () => {
+    ;(async () => {
       if (!isMaster) return
       const settings = await ipcRenderer.invoke('load-settings')
       dispatch(setSettings(settings))
@@ -92,17 +92,17 @@ const useTracking = (isMaster = false) => {
 
   useEffect(() => {
     let shouldClear = false
-      ; (async () => {
-        if (!isTrackingRunning && isMaster) {
-          dispatch(setIsTrackingRunning(true))
-          while (shouldClear === false) {
-            dispatch(setShouldTrack(true))
-            await new Promise((resolve) => setTimeout(resolve, 1000))
-          }
-          dispatch(setIsTrackingRunning(false))
-          dispatch(setShouldRestartTracking(true))
+    ;(async () => {
+      if (!isTrackingRunning && isMaster) {
+        dispatch(setIsTrackingRunning(true))
+        while (shouldClear === false) {
+          dispatch(setShouldTrack(true))
+          await new Promise((resolve) => setTimeout(resolve, 1000))
         }
-      })()
+        dispatch(setIsTrackingRunning(false))
+        dispatch(setShouldRestartTracking(true))
+      }
+    })()
     return () => {
       shouldClear = true
     }
