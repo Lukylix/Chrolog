@@ -8,11 +8,34 @@ const addSettingsMiddleware = storeAPI => next => action => {
   if (action.type === 'trackingData/updateTrackingDataAfterInactivity') {
     const state = storeAPI.getState()
     const enrichedAction = {
-      trackIngData: action,
-      settings: state.settings,
+      ...action,
+      payload: {
+        trackIngData: action.payload.trackingData,
+        settings: state.settings,
+      }
     }
     return next(enrichedAction)
-  } else {
+  } else if (action.type === 'trackingData/updateTrackingData') {
+    const state = storeAPI.getState()
+    const enrichedAction = {
+      ...action,
+      payload: {
+        trackedAppName: action.payload.trackedAppName,
+        settings: state.settings,
+      }
+    }
+    return next(enrichedAction)
+  } else if (action.type === 'trackingData/stopTrackingAll') {
+    const state = storeAPI.getState()
+    const enrichedAction = {
+      ...action,
+      payload: {
+        settings: state.settings,
+      }
+    }
+    return next(enrichedAction)
+  }
+  else {
     return next(action)
   }
 }
