@@ -113,7 +113,6 @@ const trackingDataSlice = createSlice({
           }
         }
       }, {})
-      console.log('Stop tracking data', trackingData)
       Object.keys(trackingData).map((projectName) => {
         trackingData[projectName] = {
           ...trackingData[projectName],
@@ -123,7 +122,6 @@ const trackingDataSlice = createSlice({
               .reduce((acc, curr) => acc + curr, 0) || 0
         }
       })
-      console.log('Stop tracking all', trackingData)
       return trackingData
     },
 

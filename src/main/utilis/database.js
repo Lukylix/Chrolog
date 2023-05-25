@@ -183,7 +183,7 @@ export async function createProjectListener(event, projectData) {
   return project
 }
 
-export const loadDataListener = () => {
+export const loadDataListener = (event, filters = []) => {
   return new Promise((resolve, reject) => {
     let trackingData = {}
     db.serialize(async () => {
@@ -225,7 +225,12 @@ export const loadDataListener = () => {
           await run(
             'CREATE TABLE if not exists tracking_data (id INTEGER PRIMARY KEY AUTOINCREMENT, projectName TEXT, appName TEXT, elapsedTime INTEGER, startDate INTEGER, endDate INTEGER)'
           )
-          db.all('SELECT * FROM tracking_data', (err, trackingRows) => {
+
+          const selectTrackingSql = `SELECT * FROM tracking_data ${
+            filters.length ? 'WHERE ' : ''
+          }${filters.map((filter) => `elapsedTime ${filter.operator} ?`).join(' AND ')}`
+          const filterValues = filters.map((filter) => (parseInt(filter.value) || 0) * 1000)
+          db.all(selectTrackingSql, filterValues, (err, trackingRows) => {
             if (err) return reject(err)
 
             trackingRows.forEach((trackingRow) => {

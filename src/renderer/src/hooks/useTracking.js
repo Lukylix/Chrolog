@@ -133,7 +133,6 @@ const useTracking = (isMaster = false) => {
     const trackingDataRes = await ipcRenderer.invoke('load-data')
     dispatch(saveTrackingData(trackingDataRes))
     dispatch(setIsLoadingData(false))
-    console.log('loaded data: ', trackingDataRes)
   }
 
   const getProcesses = async () => {

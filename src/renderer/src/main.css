@@ -117,8 +117,9 @@ button {
   color: white;
   font-weight: bold;
   width: fit-content;
-  margin: 10px 0 10px 0;
   cursor: pointer;
+  height: min-content;
+  align-self: center;
 }
 
 .bg-green {

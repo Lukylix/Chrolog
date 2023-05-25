@@ -64,6 +64,7 @@ function createWindow() {
   }
 
   ipcMain.on('save-data', saveDataListener)
+  ipcMain.handle('load-data', loadDataListener)
 
   ipcMain.on('update-tracking-log', updateTrackingLogListener)
   ipcMain.on('delete-tracking-log', deleteTrackingLogListener)
@@ -86,7 +87,6 @@ function createWindow() {
 
   ipcMain.handle('get-process-count', getProcessCountListener)
 
-  ipcMain.handle('load-data', loadDataListener)
   ipcMain.on('open-config-folder', () => {
     const appDataPath = app.getPath('appData')
     const dirPath = join(appDataPath, 'Chrolog/storage')
