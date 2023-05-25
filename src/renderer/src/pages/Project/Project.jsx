@@ -1,14 +1,22 @@
 import { useParams } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
-import { stopTracking, toggleProject } from '../../stores/trackingData.js'
+import {
+  stopTracking,
+  toggleProject,
+  removeTrackedApp as removeTrackedAppAction,
+  addTrackedApp
+} from '../../stores/trackingData.js'
 import { setTrackedApps, setCurrentProject } from '../../stores/tracking.js'
 import HeaderTracking from '../../components/HeaderTracking/Headertracking.jsx'
 import { DataList } from '../../components/Datalist/Datalist.jsx'
 import { useEffect, useMemo, useState } from 'react'
 import useTracking from '../../hooks/useTracking.js'
+import { ReactComponent as RemoveIcon } from '../../assets/close.svg'
+import Select from 'react-select'
 
 import './project.css'
 import Loader from '../../components/Loader/Loader.jsx'
+const { ipcRenderer } = window.require('electron')
 
 const convertMs = (ms) => {
   isNaN(ms) && (ms = 0)
@@ -43,6 +51,8 @@ let pastelColors = [
   '#FF9AA2'
 ]
 
+const operators = ['=', '!=', '>', '>=', '<', '<=']
+
 export default function Project() {
   const { name } = useParams()
   const trackingData = useSelector((state) => state.trackingData)
@@ -53,19 +63,29 @@ export default function Project() {
   const lastInputTime = useSelector((state) => state.tracking.lastInputTime)
   const isTracking = useSelector((state) => state.tracking.isTracking)
   const [inputValue, setInputValue] = useState('')
+  const [operator, setOperator] = useState('')
+
+  const dispatch = useDispatch()
+
+  const { handleTrack } = useTracking()
+
+  const removeTrackedApp = (appName) => {
+    dispatch(removeTrackedAppAction({ appName, projectName: name }))
+    ipcRenderer.send('delete-tracked-app', { appName, projectName: name })
+  }
+
+  const uniqueApps = useMemo(() => {
+    return [...new Set(project?.trackingLogs.map((log) => log.name.toLowerCase()))]
+  }, [project?.trackingLogs])
 
   const appsColorMap = useMemo(() => {
     let appWithColorMap = {}
-    for (const appKey in project.apps) {
-      const app = project.apps[appKey]
-      appWithColorMap[app.name] = pastelColors[appKey % pastelColors.length]
+    for (const appKey in uniqueApps) {
+      const app = uniqueApps[appKey]
+      appWithColorMap[app.toLowerCase()] = pastelColors[appKey % pastelColors.length]
     }
     return appWithColorMap
-  }, [project?.apps])
-
-  useEffect(() => {
-    console.log(appsColorMap)
-  }, [appsColorMap])
+  }, [uniqueApps])
 
   const projectAppsSorted = [...(project?.trackingLogs || [])]
     .sort((a, b) => b.endDate - a.endDate)
@@ -99,28 +119,23 @@ export default function Project() {
         load: ((log.elapsedTime / centPercent) * 100).toFixed(5),
         isSpace: false,
         name: log.name,
-        color: appsColorMap[log.name]
+        color: appsColorMap[log.name.toLowerCase()]
       })
       isFirst = false
     }
     return projectBars
   }, [projectAppsSorted])
 
-  const { handleCreateProject, handleTrack } = useTracking()
-
   useEffect(() => {
     dispatch(setCurrentProject(name))
-    dispatch(setTrackedApps(project.apps))
     return () => {
       dispatch(setCurrentProject(''))
-      dispatch(setTrackedApps([]))
     }
   }, [])
 
   useEffect(() => {
     if (isTracking) handleTrack()
   }, [])
-  const dispatch = useDispatch()
 
   return (
     <>
@@ -170,7 +185,14 @@ export default function Project() {
                     onClick={() => {
                       if (!currentProject) return alert('Please enter a project name')
                       if (trackedApps.length === 0) return alert('Please select an app')
-                      handleCreateProject(currentProject, trackedApps)
+                      trackedApps.forEach((app) => {
+                        ipcRenderer.send('create-tracked-app', {
+                          appName: app.name,
+                          projectName: name
+                        })
+                      })
+                      dispatch(addTrackedApp({ projectName: currentProject, app }))
+                      dispatch(setTrackedApps([]))
                     }}
                   >
                     {currentProject == name ? 'Modify' : 'Create'}
@@ -192,7 +214,30 @@ export default function Project() {
                     </h3>
                     <div className="project" style={{ gridTemplateColumns: '1fr auto' }}>
                       <p className="ellipsis">
-                        {project?.apps?.map((app) => app.name).join(', ') || ''}
+                        {project?.apps?.map((app, i) => (
+                          <span key={i}>
+                            {app.name}
+                            <RemoveIcon
+                              height="15px"
+                              width="15px"
+                              fill="white"
+                              onClick={() => removeTrackedApp(app.name)}
+                            />
+                            {i < project.apps.length - 1 ? ', ' : ''}
+                          </span>
+                        ))}
+                        {trackedApps.map((app, i) => (
+                          <span key={i}>
+                            {app.name}
+                            <RemoveIcon
+                              height="15px"
+                              width="15px"
+                              fill="white"
+                              onClick={() => removeTrackedApp(app.name)}
+                            />
+                            {i < project.apps.length - 1 ? ', ' : ''}
+                          </span>
+                        ))}
                       </p>
                       <button
                         onClick={() => {
@@ -208,6 +253,18 @@ export default function Project() {
                     </div>
                   </div>
                 )}
+                <div className="feature-item d-inline gap-10">
+                  <h3>Filter </h3>
+                  <Select
+                    className="react-select-container operator"
+                    classNamePrefix="react-select"
+                    unstyled
+                    placeholder="Opérator"
+                    data={operators}
+                    onChange={(val) => setOperator(val.value)}
+                    options={operators.map((val) => ({ label: val, value: val }))}
+                  />
+                </div>
                 <div className="feature-item">
                   <h3>Tracked Events</h3>
                   <h4>Project events over time</h4>
@@ -225,7 +282,7 @@ export default function Project() {
                     <div key={i} className="tracked-app">
                       <div
                         className="app-color"
-                        style={{ backgroundColor: appsColorMap[app.name] }}
+                        style={{ backgroundColor: appsColorMap[app.name.toLowerCase()] }}
                       />
                       <h4>
                         {app.name} - {convertMs(app.elapsedTime)}

@@ -6,6 +6,7 @@ import { DataList } from '../../components/Datalist/Datalist.jsx'
 import HeaderTracking from '../../components/HeaderTracking/Headertracking.jsx'
 import useTracking from '../../hooks/useTracking.js'
 import { ReactComponent as EditIcon } from '../../assets/edit.svg'
+import { ReactComponent as RemoveIcon } from '../../assets/close.svg'
 import { setCurrentProject, setTrackedApps } from '../../stores/tracking.js'
 import './home.css'
 import Loader from '../../components/Loader/Loader.jsx'
@@ -33,6 +34,10 @@ const Home = () => {
   const dispatch = useDispatch()
 
   const { handleCreateProject, handleTrack } = useTracking()
+
+  const removeTrackedApp = (appName) => {
+    dispatch(setTrackedApps(trackedApps.filter((trackedApp) => trackedApp.name !== appName)))
+  }
 
   useEffect(() => {
     if (isTracking) handleTrack()
@@ -97,6 +102,12 @@ const Home = () => {
                   {trackedApps.map((app, i) => (
                     <span key={i}>
                       {app.name}
+                      <RemoveIcon
+                        height="15px"
+                        width="15px"
+                        fill="white"
+                        onClick={() => removeTrackedApp(app.name)}
+                      />
                       {trackedApps.length - 1 > i && ', '}
                     </span>
                   ))}

@@ -83,10 +83,7 @@ const hookInputsLinux = () => {
 
     const nodePath = stdout.trim()
     const logPath = path.join(app.getPath('appData'), 'Chrolog/input.log')
-    let scriptPath = path.join(app.getAppPath(), './resources/hookLinuxInputs.js')
-    if (process.platform === 'linux') {
-      scriptPath = scriptPath.replace('app.asar', 'app.asar.unpacked')
-    }
+    let scriptPath = path.join(__dirname, '../../resources/hookLinuxInputs.js')
     const tempFilePath = path.join(app.getPath('appData'), 'ipc_temp_file.txt')
 
     const command = `${nodePath} ${scriptPath} -- --log ${logPath} --tempFile ${tempFilePath}`

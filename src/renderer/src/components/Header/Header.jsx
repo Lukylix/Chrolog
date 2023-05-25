@@ -17,7 +17,7 @@ export default function Header() {
       <nav className="nav">
         <Minimize fill="white" onClick={minimize} style={{ transform: 'translateY(-2px)' }} />
         <Maximize fill="#3282f7" onClick={maximize} />
-        <Close fill="#f3696c" onClick={close} />
+        <Close height="24px" width="24px" fill="#f3696c" onClick={close} />
       </nav>
     </div>
   )

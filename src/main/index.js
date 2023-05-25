@@ -1,7 +1,17 @@
 import { app, shell, BrowserWindow, ipcMain } from 'electron'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { join } from 'path'
-import { createProjectListener, createTrackingLogListener, deleteTrackingLogListener, loadDataListener, saveDataListener, updateProjectPropertiesListener, updateTrackingLogListener } from './utilis/database'
+import {
+  createProjectListener,
+  createTrackedAppListener,
+  createTrackingLogListener,
+  deleteTrackedAppListener,
+  deleteTrackingLogListener,
+  loadDataListener,
+  saveDataListener,
+  updateProjectPropertiesListener,
+  updateTrackingLogListener
+} from './utilis/database'
 import {
   getActiveAppListener,
   getProcessCountListener,
@@ -55,11 +65,13 @@ function createWindow() {
 
   ipcMain.on('save-data', saveDataListener)
 
-  ipcMain.on("update-tracking-log", updateTrackingLogListener)
-  ipcMain.on("delete-tracking-log", deleteTrackingLogListener)
-  ipcMain.on("create-tracking-log", createTrackingLogListener)
-  ipcMain.on("update-project-properties", updateProjectPropertiesListener)
-  ipcMain.on("create-project", createProjectListener)
+  ipcMain.on('update-tracking-log', updateTrackingLogListener)
+  ipcMain.on('delete-tracking-log', deleteTrackingLogListener)
+  ipcMain.on('create-tracking-log', createTrackingLogListener)
+  ipcMain.on('update-project-properties', updateProjectPropertiesListener)
+  ipcMain.on('create-project', createProjectListener)
+  ipcMain.on('delete-tracked-app', deleteTrackedAppListener)
+  ipcMain.on('create-tracked-app', createTrackedAppListener)
 
   // Opens the developer tools when F12 is pressed
   mainWindow.webContents.on('before-input-event', (event, input) => {

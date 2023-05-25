@@ -30,9 +30,7 @@ export async function saveDataListener(event, trackingData) {
   )
 
   // Create table for app data if it doesn't exist
-  await run(
-    'CREATE TABLE if not exists app_data (projectName TEXT, appName TEXT, icon TEXT, pid INTEGER)'
-  )
+  await run('CREATE TABLE if not exists app_data (projectName TEXT, appName TEXT)')
 
   // Create table for tracking data if it doesn't exist
   await run(
@@ -44,7 +42,7 @@ export async function saveDataListener(event, trackingData) {
   const insertProjectSql = `INSERT INTO project_data (name, toggled, elapsedTime, startDate, endDate) VALUES (?, ?, ?, ?, ?)`
 
   const selectAppSql = `SELECT * FROM app_data WHERE projectName = ? AND appName = ?`
-  const insertAppSql = `INSERT INTO app_data (projectName, appName, icon, pid) VALUES (?, ?, ?, ?)`
+  const insertAppSql = `INSERT INTO app_data (projectName, appName) VALUES (?, ?)`
 
   const selectTrackingSql = `SELECT * FROM tracking_data WHERE logId = ?`
   const updateTrackingSql = `UPDATE tracking_data SET elapsedTime = ?, startDate = ?, endDate = ? WHERE logId = ?`
@@ -156,17 +154,34 @@ export async function updateProjectPropertiesListener(event, projectData) {
   return await run(updateProjectSql, [toggled, elapsedTime, startDate, endDate, projectName])
 }
 
+export async function deleteTrackedAppListener(event, appData) {
+  const { projectName, appName } = appData
+  const deleteAppSql = `DELETE FROM app_data WHERE projectName = ? AND appName = ?`
+  return await run(deleteAppSql, [projectName, appName])
+}
+
+export async function createTrackedAppListener(event, appData) {
+  const { projectName, appName } = appData
+  const insertAppSql = `INSERT INTO app_data (projectName, appName) VALUES (?, ?)`
+  return await run(insertAppSql, [projectName, appName])
+}
+
 export async function createProjectListener(event, projectData) {
   const { projectName, toggled, elapsedTime, startDate, endDate } = projectData
   const insertProjectSql = `INSERT INTO project_data (name, toggled, elapsedTime, startDate, endDate) VALUES (?, ?, ?, ?, ?)`
-  const project = await run(insertProjectSql, [projectName, toggled, elapsedTime, startDate, endDate])
-  const insertAppSql = `INSERT INTO app_data (projectName, appName, icon, pid) VALUES (?, ?, ?, ?)`
+  const project = await run(insertProjectSql, [
+    projectName,
+    toggled,
+    elapsedTime,
+    startDate,
+    endDate
+  ])
+  const insertAppSql = `INSERT INTO app_data (projectName, appName) VALUES (?, ?)`
   for (const app of projectData.apps) {
     await run(insertAppSql, [projectName, app.name, app.icon, app.pid])
   }
   return project
 }
-
 
 export const loadDataListener = () => {
   return new Promise((resolve, reject) => {
@@ -192,9 +207,7 @@ export const loadDataListener = () => {
         })
 
         // Load app data
-        await run(
-          'CREATE TABLE if not exists app_data (projectName TEXT, appName TEXT, icon TEXT, pid INTEGER)'
-        )
+        await run('CREATE TABLE if not exists app_data (projectName TEXT, appName TEXT)')
         db.all('SELECT * FROM app_data', async (err, appRows) => {
           if (err) return reject(err)
 

@@ -101,6 +101,10 @@ input {
   align-items: center;
 }
 
+.gap-10 {
+  gap: 10px;
+}
+
 .space-between {
   justify-content: space-between;
 }
