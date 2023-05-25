@@ -100,8 +100,12 @@ export default function Project() {
       const app = uniqueApps[appKey]
       appWithColorMap[app.toLowerCase()] = pastelColors[appKey % pastelColors.length]
     }
+    for (const appKey in project?.apps) {
+      const app = project?.apps[appKey]
+      appWithColorMap[app.name.toLowerCase()] = pastelColors[appKey % pastelColors.length]
+    }
     return appWithColorMap
-  }, [uniqueApps])
+  }, [uniqueApps, project?.apps])
 
   const projectAppsSorted = [...(currentProjectTrackingData?.trackingLogs || [])]
     .sort((a, b) => b.endDate - a.endDate)

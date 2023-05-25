@@ -74,10 +74,6 @@ input[list]:focus + i {
   transform: translateY(-50%) rotate(180deg);
 }
 
-input[list]::-webkit-input-placeholder {
-  color: white;
-}
-
 /* Remove arrow */
 input[list]::-webkit-calendar-picker-indicator {
   display: none !important;
