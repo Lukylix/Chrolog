@@ -83,7 +83,7 @@ const hookInputsLinux = () => {
 
     const nodePath = stdout.trim()
     const logPath = path.join(app.getPath('appData'), 'Chrolog/input.log')
-    let scriptPath = path.join(__dirname, '../../resources/hookLinuxInputs.js')
+    let scriptPath = path.join(app.getAppPath(), '../../resources/resources/hookLinuxInputs.js')
     const tempFilePath = path.join(app.getPath('appData'), 'ipc_temp_file.txt')
 
     const command = `${nodePath} ${scriptPath} -- --log ${logPath} --tempFile ${tempFilePath}`
