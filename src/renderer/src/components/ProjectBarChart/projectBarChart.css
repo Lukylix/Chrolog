@@ -1,0 +1,5 @@
+.chart-controls {
+  display: flex;
+  justify-content: center;
+  height: 38px;
+}

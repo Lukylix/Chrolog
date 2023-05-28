@@ -183,7 +183,6 @@ const trackingDataSlice = createSlice({
           trackingLogs,
           startDate: state[projectName].startDate || Date.now()
         }
-        console.log('Update tracking data', state)
       }
     },
     updateTrackingDataAfterInactivity: (state, action) => {

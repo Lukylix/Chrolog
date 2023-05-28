@@ -10,9 +10,12 @@ import {
 import { setTrackedApps, setCurrentProject } from '../../stores/tracking.js'
 import HeaderTracking from '../../components/HeaderTracking/Headertracking.jsx'
 import { DataList } from '../../components/Datalist/Datalist.jsx'
+import ProjectBarCharts from '../../components/ProjectBarChart/ProjectBarChart.jsx'
 import { useEffect, useMemo, useState } from 'react'
 import useTracking from '../../hooks/useTracking.js'
 import { ReactComponent as RemoveIcon } from '../../assets/close.svg'
+import { ReactComponent as ChevronDown } from '../../assets/chevron_down.svg'
+import { ReactComponent as ChevronUp } from '../../assets/chevron_up.svg'
 import Select from 'react-select'
 
 import './project.css'
@@ -67,7 +70,9 @@ export default function Project() {
   const [inputValue, setInputValue] = useState('')
   const [operator, setOperator] = useState('')
   const [filterValue, setFilterValue] = useState('')
-  const [filters, setFilters] = useState([{ operator: '>', value: minLogSecs }])
+  const [filters, setFilters] = useState([
+    { operator: '>', value: 30 > minLogSecs ? 30 : minLogSecs }
+  ])
   const [currentProjectTrackingData, setCurrentProjectTrackingData] = useState(project)
 
   const dispatch = useDispatch()
@@ -195,7 +200,7 @@ export default function Project() {
                     </div>
                   </div>
                 )}
-                <div className="project-settings">
+                <div className="project-settings project-settings-track">
                   <input
                     onChange={(e) => dispatch(setCurrentProject(e.target.value))}
                     type="text"
@@ -319,7 +324,7 @@ export default function Project() {
                 </div>
               </div>
               <div className="feature-item grid-fill">
-                <h3>Tracked Events over time</h3>
+                <h3>Tracked Events</h3>
                 <div className="event-bars">
                   {projectBars.map((bar, i) => (
                     <div
@@ -329,19 +334,29 @@ export default function Project() {
                     />
                   ))}
                 </div>
-
-                {projectAppsSorted.map((app, i) => (
-                  <div key={i} className="tracked-app">
-                    <div
-                      className="app-color"
-                      style={{ backgroundColor: appsColorMap[app.name.toLowerCase()] }}
-                    />
-                    <h4>
-                      {app.name} - {convertMs(app.elapsedTime)}
-                    </h4>
-                    <p className="app-end">{convertDate(app.endDate)}</p>
-                  </div>
-                ))}
+              </div>
+              <div className="feature-item grid-fill">
+                <ProjectBarCharts appsColorMap={appsColorMap} />
+              </div>
+              <div className="feature-item grid-fill">
+                <details>
+                  <summary>
+                    Tracked Events over details
+                    <ChevronDown height={'24px'} fill="white" />
+                  </summary>
+                  {projectAppsSorted.map((app, i) => (
+                    <div key={i} className="tracked-app">
+                      <div
+                        className="app-color"
+                        style={{ backgroundColor: appsColorMap[app.name.toLowerCase()] }}
+                      />
+                      <h4>
+                        {app.name} - {convertMs(app.elapsedTime)}
+                      </h4>
+                      <p className="app-end">{convertDate(app.endDate)}</p>
+                    </div>
+                  ))}
+                </details>
               </div>
             </div>
           </>

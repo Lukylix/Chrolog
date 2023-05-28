@@ -1,4 +1,9 @@
-import { createSlice } from '@reduxjs/toolkit'
+import { createSlice, current } from '@reduxjs/toolkit'
+
+const currentDate = new Date()
+const currentDay = currentDate.getDay() // Current day of the week (0-6)
+const startDay = new Date(new Date().setDate(currentDate.getDate() - currentDay)) // Start day (Monday)
+const endDay = new Date(new Date().setDate(currentDate.getDate() - currentDay + 6)) // End day (Sunday)
 
 const trackingSlice = createSlice({
   name: 'tracking',
@@ -16,7 +21,11 @@ const trackingSlice = createSlice({
     completedProcess: 0,
     shouldTrack: false,
     isTrackingRunning: false,
-    shouldRestartTracking: false
+    shouldRestartTracking: false,
+    currentPeriod: {
+      start: startDay.getTime(),
+      end: endDay.getTime()
+    }
   },
   reducers: {
     setIsTracking: (state, action) => {
@@ -60,6 +69,9 @@ const trackingSlice = createSlice({
     },
     setShouldRestartTracking: (state, action) => {
       state.shouldRestartTracking = action.payload
+    },
+    setCurrentPeriod: (state, action) => {
+      state.currentPeriod = action.payload
     }
   }
 })
@@ -78,7 +90,8 @@ export const {
   setCompletedProcess,
   setShouldTrack,
   setIsTrackingRunning,
-  setShouldRestartTracking
+  setShouldRestartTracking,
+  setCurrentPeriod
 } = trackingSlice.actions
 
 export default trackingSlice.reducer

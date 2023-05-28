@@ -27,6 +27,10 @@
   font-size: medium;
 }
 
+.project-settings-track {
+  grid-template-columns: 1fr 1fr auto;
+}
+
 .tracked-app {
   display: flex;
   gap: 10px;
@@ -161,4 +165,19 @@ input[list] {
 
 .grid-fill {
   grid-column: 1 / -1;
+}
+
+details summary {
+  list-style: none;
+  font-size: 1.17em;
+  display: flex;
+  font-weight: bold;
+}
+
+[open] > summary svg {
+  transform: rotate(180deg);
+}
+
+details summary::-webkit-details-marker {
+  display: none;
 }
