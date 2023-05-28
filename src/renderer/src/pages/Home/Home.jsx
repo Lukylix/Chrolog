@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { stopTracking, toggleProject } from '../../stores/trackingData.js'
 import { Link } from 'react-router-dom'
@@ -35,9 +35,9 @@ const Home = () => {
 
   const { handleCreateProject, handleTrack } = useTracking()
 
-  const removeTrackedApp = (appName) => {
+  const removeTrackedApp = useCallback((appName) => {
     dispatch(setTrackedApps(trackedApps.filter((trackedApp) => trackedApp.name !== appName)))
-  }
+  }, [])
 
   useEffect(() => {
     if (isTracking) handleTrack()

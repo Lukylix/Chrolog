@@ -34,9 +34,6 @@ function createWindow() {
     autoHideMenuBar: true,
     frame: false,
     titleBarStyle: 'hidden',
-    titleBarOverlay: {
-      color: '#2f3241'
-    },
     icon,
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),

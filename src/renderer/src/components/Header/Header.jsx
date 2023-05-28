@@ -5,11 +5,12 @@ import { ReactComponent as Minimize } from '../../assets/minimize.svg'
 import { ReactComponent as Maximize } from '../../assets/fullscreen.svg'
 
 import './header.css'
+import { useCallback } from 'react'
 
 export default function Header() {
-  const minimize = () => ipcRenderer.send('minimize-event')
-  const maximize = () => ipcRenderer.send('maximize-event')
-  const close = () => ipcRenderer.send('close-event')
+  const minimize = useCallback(() => ipcRenderer.send('minimize-event'), [])
+  const maximize = useCallback(() => ipcRenderer.send('maximize-event'), [])
+  const close = useCallback(() => ipcRenderer.send('close-event'), [])
 
   return (
     <div className="header">

@@ -1,9 +1,10 @@
+import { useCallback } from 'react'
 import './toggle.css'
 
 export default function Toggle({ toggled = false, setIsToggled = () => {} }) {
-  const handleToggle = () => {
+  const handleToggle = useCallback(() => {
     setIsToggled((toggled) => !toggled)
-  }
+  }, [])
 
   return (
     <label className="switch">

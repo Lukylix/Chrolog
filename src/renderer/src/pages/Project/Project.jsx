@@ -11,7 +11,7 @@ import { setTrackedApps, setCurrentProject } from '../../stores/tracking.js'
 import HeaderTracking from '../../components/HeaderTracking/Headertracking.jsx'
 import { DataList } from '../../components/Datalist/Datalist.jsx'
 import ProjectBarCharts from '../../components/ProjectBarChart/ProjectBarChart.jsx'
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import useTracking from '../../hooks/useTracking.js'
 import { ReactComponent as RemoveIcon } from '../../assets/close.svg'
 import { ReactComponent as ChevronDown } from '../../assets/chevron_down.svg'
@@ -79,14 +79,14 @@ export default function Project() {
 
   const { handleTrack } = useTracking()
 
-  const removeTrackedApp = (appName) => {
+  const removeTrackedApp = useCallback((appName) => {
     dispatch(removeTrackedAppAction({ appName, projectName: name }))
     ipcRenderer.send('delete-tracked-app', { appName, projectName: name })
-  }
+  }, [])
 
-  const removeFilter = (index) => {
+  const removeFilter = useCallback((index) => {
     setFilters(filters.filter((_, i) => i !== index))
-  }
+  }, [])
 
   useEffect(() => {
     ;(async () => {
@@ -112,9 +112,13 @@ export default function Project() {
     return appWithColorMap
   }, [uniqueApps, project?.apps])
 
-  const projectAppsSorted = [...(currentProjectTrackingData?.trackingLogs || [])]
-    .sort((a, b) => b.endDate - a.endDate)
-    .filter((log) => log?.endDate)
+  const projectAppsSorted = useMemo(
+    () =>
+      [...(currentProjectTrackingData?.trackingLogs || [])]
+        .sort((a, b) => b.endDate - a.endDate)
+        .filter((log) => log?.endDate),
+    [currentProjectTrackingData?.trackingLogs]
+  )
 
   const projectBars = useMemo(() => {
     let projectBars = [],

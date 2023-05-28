@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 import './datalist.css'
 
@@ -20,17 +20,17 @@ export function DataList({
     datalistRef.current.style.display = 'none'
   }, [])
 
-  const addSelected = (value) => {
+  const addSelected = useCallback((value) => {
     console.log('Add Seelected', value)
     setSelecteds((selecteds) => {
       return [...new Set([value, ...selecteds])]
     })
-  }
-  const onClick = (value) => {
+  }, [])
+  const onClick = useCallback((value) => {
     console.log('On Click')
     addSelected(value)
     selectedCallBack()
-  }
+  }, [])
   return (
     <div
       className={`dropdown-container ${data.length > 20 && 'w30'} ${data.length > 10 && 'w20'} ${

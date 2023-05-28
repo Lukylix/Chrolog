@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useParams } from 'react-router-dom'
 import {
@@ -80,7 +80,7 @@ export default function ProjectBarCharts({ appsColorMap }) {
     }
   }, [period])
 
-  const getChartDataForEachDay = () => {
+  const getChartDataForEachDay = useCallback(() => {
     const { start, end } = currentPeriod
     const startDate = new Date(start)
     const endDate = new Date(end)
@@ -119,9 +119,9 @@ export default function ProjectBarCharts({ appsColorMap }) {
       })
     }
     return chartDataPerDay
-  }
+  }, [trackingLogsFinished, trackedApps, currentPeriod])
 
-  const getChartDataForEachMonth = () => {
+  const getChartDataForEachMonth = useCallback(() => {
     let chartDataPerMonth = []
     const { start, end } = currentPeriod
     const startDate = new Date(start)
@@ -152,28 +152,28 @@ export default function ProjectBarCharts({ appsColorMap }) {
       })
     }
     return chartDataPerMonth
-  }
+  }, [trackingLogsFinished, trackedApps, currentPeriod])
 
-  const addDaysToDate = (date, days) => {
+  const addDaysToDate = useCallback((date, days) => {
     let result = new Date(date)
     result.setDate(result.getDate() + days)
     return result
-  }
+  }, [])
 
-  const addMonthsToDate = (date, months) => {
+  const addMonthsToDate = useCallback((date, months) => {
     let result = new Date(date)
     result.setMonth(result.getMonth() + months)
     return result
-  }
+  }, [])
 
-  const addYearsToDate = (date, years) => {
+  const addYearsToDate = useCallback((date, years) => {
     let result = new Date(date)
     result.setFullYear(result.getFullYear() + years)
     return result
-  }
+  }, [])
 
   // Function to handle next chart
-  const nextChart = () => {
+  const nextChart = useCallback(() => {
     if (period === 'week') {
       const start = addDaysToDate(currentPeriod.start, 6)
       const end = addDaysToDate(currentPeriod.end, 6)
@@ -188,10 +188,10 @@ export default function ProjectBarCharts({ appsColorMap }) {
       const end = addYearsToDate(currentPeriod.end, 1)
       dispatch(setCurrentPeriod({ start: start.getTime(), end: end.getTime() }))
     }
-  }
+  }, [currentPeriod, period])
 
   // Function to handle previous chart
-  const prevChart = () => {
+  const prevChart = useCallback(() => {
     if (period === 'week') {
       const start = addDaysToDate(currentPeriod.start, -6)
       const end = addDaysToDate(currentPeriod.end, -6)
@@ -206,7 +206,7 @@ export default function ProjectBarCharts({ appsColorMap }) {
       const end = addYearsToDate(currentPeriod.end, -1)
       dispatch(setCurrentPeriod({ start: start.getTime(), end: end.getTime() }))
     }
-  }
+  }, [currentPeriod, period])
   const dataChart = useMemo(() => {
     let chartDataPerDay = []
     if (period === 'week' || period === 'month') chartDataPerDay = getChartDataForEachDay()

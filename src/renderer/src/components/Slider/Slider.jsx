@@ -1,9 +1,10 @@
+import { useCallback } from 'react'
 import './slider.css'
 
 const Slider = ({ value, min, max, onChange = () => {} }) => {
-  const handleChange = (event) => {
+  const handleChange = useCallback((event) => {
     onChange(event.target.value)
-  }
+  }, [])
 
   return (
     <input

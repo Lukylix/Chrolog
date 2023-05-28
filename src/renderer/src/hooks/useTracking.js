@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import {
   createProject,
@@ -44,7 +44,7 @@ const useTracking = (isMaster = false) => {
 
   const dispatch = useDispatch()
 
-  const track = async () => {
+  const track = useCallback(async () => {
     dispatch(setShouldTrack(false))
     if (!isTracking) return
     const activeApp = await ipcRenderer.invoke('get-active-app')
@@ -77,9 +77,9 @@ const useTracking = (isMaster = false) => {
         trackedAppName: trackedApp.name
       })
     )
-  }
+  }, [isTracking, lastInputTime, lastTrackTime, minLastInputSecs, trackingData])
   useEffect(() => {
-    ;(async () => {
+    ; (async () => {
       if (!isMaster) return
       const settings = await ipcRenderer.invoke('load-settings')
       dispatch(setSettings(settings))
@@ -92,17 +92,17 @@ const useTracking = (isMaster = false) => {
 
   useEffect(() => {
     let shouldClear = false
-    ;(async () => {
-      if (!isTrackingRunning && isMaster) {
-        dispatch(setIsTrackingRunning(true))
-        while (shouldClear === false) {
-          dispatch(setShouldTrack(true))
-          await new Promise((resolve) => setTimeout(resolve, 1000))
+      ; (async () => {
+        if (!isTrackingRunning && isMaster) {
+          dispatch(setIsTrackingRunning(true))
+          while (shouldClear === false) {
+            dispatch(setShouldTrack(true))
+            await new Promise((resolve) => setTimeout(resolve, 1000))
+          }
+          dispatch(setIsTrackingRunning(false))
+          dispatch(setShouldRestartTracking(true))
         }
-        dispatch(setIsTrackingRunning(false))
-        dispatch(setShouldRestartTracking(true))
-      }
-    })()
+      })()
     return () => {
       shouldClear = true
     }
@@ -112,7 +112,7 @@ const useTracking = (isMaster = false) => {
     if (shouldTrack && isMaster) track()
   }, [shouldTrack])
 
-  const handleCreateProject = (projectName, associatedApps) => {
+  const handleCreateProject = useCallback((projectName, associatedApps) => {
     if (!projectName) {
       // Handle the case where projectName is not defined
       console.error('No project name defined')
@@ -124,27 +124,27 @@ const useTracking = (isMaster = false) => {
         projectData: { toggled: true, apps: associatedApps }
       })
     )
-  }
+  }, [])
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     if (Object.keys(trackingData).length > 0 || isLoadingData) return
     console.log('loading data')
     dispatch(setIsLoadingData(true))
     const trackingDataRes = await ipcRenderer.invoke('load-data')
     dispatch(saveTrackingData(trackingDataRes))
     dispatch(setIsLoadingData(false))
-  }
+  }, [trackingData, isLoadingData])
 
-  const getProcesses = async () => {
+  const getProcesses = useCallback(async () => {
     if (processes.length > 0 || isGettingProcessList) return
     dispatch(setIsGettingProcessList(true))
     ipcRenderer.send('get-windows-with-icons')
-  }
-  const getProcessCount = async () => {
+  }, [processes, isGettingProcessList])
+  const getProcessCount = useCallback(async () => {
     if (processCount > 0) return
     const count = await ipcRenderer.invoke('get-process-count')
     dispatch(setProcessCount(count))
-  }
+  }, [processCount])
 
   useEffect(() => {
     ipcRenderer.on('window-closed', () => {
@@ -175,10 +175,10 @@ const useTracking = (isMaster = false) => {
     if (processCount == 0) getProcesses()
   }, [processCount])
 
-  const handleStopTrack = () => {
+  const handleStopTrack = useCallback(() => {
     dispatch(setIsTracking(false))
     dispatch(stopTrackingAll())
-  }
+  }, [])
 
   return {
     handleTrack: () => dispatch(setIsTracking(true)),
