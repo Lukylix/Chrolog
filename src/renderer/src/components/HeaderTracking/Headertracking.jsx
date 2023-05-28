@@ -4,6 +4,8 @@ import { Link, useLocation } from 'react-router-dom'
 import { ReactComponent as SettingsIcon } from '../../assets/settings.svg'
 import { ReactComponent as BackIcon } from '../../assets/back.svg'
 import { ReactComponent as FileIcon } from '../../assets/file.svg'
+import { ReactComponent as PowerIcon } from '../../assets/power.svg'
+import { ReactComponent as ChrologIcon } from '../../assets/chrolog.svg'
 import './headerTracker.css'
 
 const { ipcRenderer } = window.require('electron')
@@ -17,7 +19,14 @@ export default function HeaderTracking() {
     <div className="d-inline space-between">
       <div className="d-inline">
         <Link to="/">
-          <h2>Chrolog Tracker </h2>
+          <h2>
+            <ChrologIcon
+              height="35px"
+              fill="white"
+              style={{ transform: 'translateY(8px)', marginRight: '2px' }}
+            />
+            hrolog Tracker
+          </h2>
         </Link>
         <div className="icons-title">
           {path === '/' && (
@@ -38,13 +47,9 @@ export default function HeaderTracking() {
         </div>
       </div>
       {isTracking ? (
-        <button onClick={handleStopTrack} className="bg-red">
-          Stop Tracking
-        </button>
+        <PowerIcon fill="#FF6347" height="45px" onClick={handleStopTrack} />
       ) : (
-        <button onClick={handleTrack} className="bg-green">
-          Start Tracking
-        </button>
+        <PowerIcon fill="#1AA68A" height="45px" onClick={handleTrack} />
       )}
     </div>
   )

@@ -8,11 +8,11 @@ body {
 }
 
 #root {
-  min-height: 100vh;
+  min-height: calc(100vh - 20px);
   margin-top: 20px;
 }
 .main {
-  min-height: 100vh;
+  min-height: calc(100vh - 20px - 30px);
 }
 * {
   padding: 0;

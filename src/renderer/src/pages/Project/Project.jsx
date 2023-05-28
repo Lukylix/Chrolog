@@ -15,7 +15,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import useTracking from '../../hooks/useTracking.js'
 import { ReactComponent as RemoveIcon } from '../../assets/close.svg'
 import { ReactComponent as ChevronDown } from '../../assets/chevron_down.svg'
-import { ReactComponent as ChevronUp } from '../../assets/chevron_up.svg'
+import { ReactComponent as PowerIcon } from '../../assets/power.svg'
 import Select from 'react-select'
 
 import './project.css'
@@ -199,17 +199,29 @@ export default function Project() {
                         }
                         {`${name} - ${convertMs(project.elapsedTime)}`}
                       </h3>
-                      <button
-                        onClick={() => {
-                          dispatch(toggleProject({ projectName: name }))
-                          if (project.toggled) {
-                            dispatch(stopTracking({ projectName: name }))
-                          }
-                        }}
-                        className={project?.toggled ? 'bg-red' : 'bg-green'}
-                      >
-                        Toggle {project?.toggled ? 'Off' : 'On'}
-                      </button>
+                      {project.toggled ? (
+                        <PowerIcon
+                          fill="#1AA68A"
+                          height="30px"
+                          onClick={() => {
+                            dispatch(toggleProject({ projectName: projectKey }))
+                            if (trackingData[projectKey].toggled) {
+                              dispatch(stopTracking({ projectName: projectKey }))
+                            }
+                          }}
+                        />
+                      ) : (
+                        <PowerIcon
+                          fill="#1AA68A"
+                          height="30px"
+                          onClick={() => {
+                            dispatch(toggleProject({ projectName: name }))
+                            if (trackingData[name].toggled) {
+                              dispatch(stopTracking({ projectName: name }))
+                            }
+                          }}
+                        />
+                      )}
                     </div>
                   </div>
                 )}

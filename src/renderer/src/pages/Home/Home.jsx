@@ -7,6 +7,7 @@ import HeaderTracking from '../../components/HeaderTracking/Headertracking.jsx'
 import useTracking from '../../hooks/useTracking.js'
 import { ReactComponent as EditIcon } from '../../assets/edit.svg'
 import { ReactComponent as RemoveIcon } from '../../assets/close.svg'
+import { ReactComponent as PowerIcon } from '../../assets/power.svg'
 import { setCurrentProject, setTrackedApps } from '../../stores/tracking.js'
 import './home.css'
 import Loader from '../../components/Loader/Loader.jsx'
@@ -141,17 +142,29 @@ const Home = () => {
                         <Link to={`/project/${projectKey}`}>
                           <EditIcon fill="white" />
                         </Link>
-                        <button
-                          onClick={() => {
-                            dispatch(toggleProject({ projectName: projectKey }))
-                            if (trackingData[projectKey].toggled) {
-                              dispatch(stopTracking({ projectName: projectKey }))
-                            }
-                          }}
-                          className={project?.toggled ? 'bg-red' : 'bg-green'}
-                        >
-                          Toggle {project?.toggled ? 'Off' : 'On'}
-                        </button>
+                        {project?.toggled ? (
+                          <PowerIcon
+                            fill="#FF6347"
+                            height="30px"
+                            onClick={() => {
+                              dispatch(toggleProject({ projectName: projectKey }))
+                              if (trackingData[projectKey].toggled) {
+                                dispatch(stopTracking({ projectName: projectKey }))
+                              }
+                            }}
+                          />
+                        ) : (
+                          <PowerIcon
+                            fill="#1AA68A"
+                            height="30px"
+                            onClick={() => {
+                              dispatch(toggleProject({ projectName: projectKey }))
+                              if (trackingData[projectKey].toggled) {
+                                dispatch(stopTracking({ projectName: projectKey }))
+                              }
+                            }}
+                          />
+                        )}
                       </div>
                     </div>
                   )
