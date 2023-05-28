@@ -67,6 +67,7 @@ export default function Project() {
   const lastInputTime = useSelector((state) => state.tracking.lastInputTime)
   const isTracking = useSelector((state) => state.tracking.isTracking)
   const minLogSecs = useSelector((state) => state.settings.minLogSecs)
+  const currentPeriod = useSelector((state) => state.settings.currentPeriod)
   const [inputValue, setInputValue] = useState('')
   const [operator, setOperator] = useState('')
   const [filterValue, setFilterValue] = useState('')
@@ -118,6 +119,14 @@ export default function Project() {
         .sort((a, b) => b.endDate - a.endDate)
         .filter((log) => log?.endDate),
     [currentProjectTrackingData?.trackingLogs]
+  )
+
+  const projectAppsSortedFiltered = useMemo(
+    () =>
+      projectAppsSorted.filter(
+        (log) => log?.startDate >= currentPeriod?.start && log?.endDate <= currentPeriod?.end
+      ),
+    [projectAppsSorted, currentPeriod]
   )
 
   const projectBars = useMemo(() => {
@@ -339,16 +348,22 @@ export default function Project() {
                   ))}
                 </div>
               </div>
-              <div className="feature-item grid-fill">
-                <ProjectBarCharts appsColorMap={appsColorMap} />
-              </div>
+              {process.platform !== 'win32' && (
+                <div className="feature-item grid-fill">
+                  <ProjectBarCharts appsColorMap={appsColorMap} />
+                </div>
+              )}
               <div className="feature-item grid-fill">
                 <details>
                   <summary>
                     Tracked Events details
                     <ChevronDown height={'24px'} fill="white" />
                   </summary>
-                  {projectAppsSorted.map((app, i) => (
+                  {[
+                    ...(process.platform === 'win32'
+                      ? projectAppsSorted
+                      : projectAppsSortedFiltered)
+                  ].map((app, i) => (
                     <div key={i} className="tracked-app">
                       <div
                         className="app-color"

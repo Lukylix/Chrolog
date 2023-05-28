@@ -6,6 +6,10 @@ Check the release page for binary files.
 
 ![Project Details](./ProjectEdit.png)
 
+# Running on windows
+
+Recharts is laggy on windows so it's currently disabled until a proper fix is found.
+
 # Running on linux
 
 Chrolog must be run from a terminal in order for sudo exec to run
