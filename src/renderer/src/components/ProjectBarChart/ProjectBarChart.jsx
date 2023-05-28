@@ -49,7 +49,7 @@ export default function ProjectBarCharts({ appsColorMap }) {
   const currentPeriod = useSelector((state) => state.tracking.currentPeriod)
   const trackingLogsFinished = useMemo(
     () => project?.trackingLogs.filter((log) => log.endDate),
-    [project?.trackingLogs]
+    [project?.trackingLogs.length]
   )
   const trackedApps = useMemo(
     () =>
@@ -104,7 +104,8 @@ export default function ProjectBarCharts({ appsColorMap }) {
         ...trackedApps.reduce((acc, app) => {
           acc[app] = trackingLogsFinished.reduce((acc, curr) => {
             if (
-              curr.name === app &&
+              curr.endDate &&
+              curr.name.toLowerCase() === app.toLowerCase() &&
               new Date(curr.startDate).getDate() === currentDate.getDate() &&
               new Date(curr.startDate).getMonth() === currentDate.getMonth() &&
               new Date(curr.startDate).getFullYear() === currentDate.getFullYear()
@@ -137,7 +138,8 @@ export default function ProjectBarCharts({ appsColorMap }) {
         ...trackedApps.reduce((acc, app) => {
           acc[app] = trackingLogsFinished.reduce((acc, curr) => {
             if (
-              curr.name === app &&
+              curr.endDate &&
+              curr.name.toLowerCase() === app.toLowerCase() &&
               new Date(curr.startDate).getMonth() === currentMonth &&
               new Date(curr.startDate).getFullYear() === currentYear
             ) {
@@ -213,6 +215,15 @@ export default function ProjectBarCharts({ appsColorMap }) {
     return chartDataPerDay
   }, [trackingLogsFinished, trackedApps, currentPeriod])
 
+  const dataChartPositive = useMemo(() => {
+    return dataChart.map((data) => {
+      for (let key in data) {
+        if (key !== 'name') data[key] += data[key] < 0 ? 0 : data[key]
+      }
+      return data
+    })
+  }, [dataChart])
+
   useEffect(() => {
     const handleKeyDown = (e) => {
       console.log(e.keyCode)
@@ -244,7 +255,7 @@ export default function ProjectBarCharts({ appsColorMap }) {
         <BarChart
           width={500}
           height={300}
-          data={dataChart}
+          data={dataChartPositive}
           margin={{
             top: 20
           }}

@@ -341,7 +341,7 @@ export default function Project() {
               <div className="feature-item grid-fill">
                 <details>
                   <summary>
-                    Tracked Events over details
+                    Tracked Events details
                     <ChevronDown height={'24px'} fill="white" />
                   </summary>
                   {projectAppsSorted.map((app, i) => (
