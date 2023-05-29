@@ -5,9 +5,9 @@ import { ReactComponent as Minimize } from '../../assets/minimize.svg'
 import { ReactComponent as Maximize } from '../../assets/fullscreen.svg'
 
 import './header.css'
-import { useCallback } from 'react'
+import { memo, useCallback } from 'react'
 
-export default function Header() {
+const Header = memo(() => {
   const minimize = useCallback(() => ipcRenderer.send('minimize-event'), [])
   const maximize = useCallback(() => ipcRenderer.send('maximize-event'), [])
   const close = useCallback(() => ipcRenderer.send('close-event'), [])
@@ -22,4 +22,5 @@ export default function Header() {
       </nav>
     </div>
   )
-}
+})
+export default Header

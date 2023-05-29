@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { memo, useCallback, useEffect, useMemo, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useParams } from 'react-router-dom'
 import {
@@ -39,7 +39,7 @@ const currentDay = currentDate.getDay() // Current day of the week (0-6)
 const startDay = new Date(new Date().setDate(currentDate.getDate() - currentDay)) // Start day (Monday)
 const endDay = new Date(new Date().setDate(currentDate.getDate() - currentDay + 6)) // End day (Sunday)
 
-export default function ProjectBarCharts({ appsColorMap }) {
+const ProjectBarCharts = memo(({ appsColorMap, trackingLogs }) => {
   const { name } = useParams()
   const dispatch = useDispatch()
   const trackingData = useSelector((state) => state.trackingData)
@@ -48,8 +48,8 @@ export default function ProjectBarCharts({ appsColorMap }) {
 
   const currentPeriod = useSelector((state) => state.tracking.currentPeriod)
   const trackingLogsFinished = useMemo(
-    () => project?.trackingLogs.filter((log) => log.endDate),
-    [project?.trackingLogs.length]
+    () => trackingLogs.filter((log) => log.endDate),
+    [trackingLogs.length]
   )
   const trackedApps = useMemo(
     () =>
@@ -275,4 +275,5 @@ export default function ProjectBarCharts({ appsColorMap }) {
       </ResponsiveContainer>
     </>
   )
-}
+})
+export default ProjectBarCharts
