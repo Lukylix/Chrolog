@@ -1,4 +1,4 @@
-import { app, shell, BrowserWindow, ipcMain } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, Tray, Menu, nativeImage } from 'electron'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { join } from 'path'
 import {
@@ -20,10 +20,19 @@ import {
 } from './utilis/system'
 import Store from 'electron-store'
 import os from 'os'
-import installExtension, { REDUX_DEVTOOLS, REACT_DEVELOPER_TOOLS } from 'electron-devtools-installer'
+import installExtension, {
+  REDUX_DEVTOOLS,
+  REACT_DEVELOPER_TOOLS
+} from 'electron-devtools-installer'
+import { existsSync } from 'fs'
 
+let startMinimized = (process.argv || []).indexOf('--hidden') !== -1
 
 const store = new Store()
+
+let tray = null
+
+
 
 function createWindow() {
   let icon
@@ -46,11 +55,63 @@ function createWindow() {
       disableGpu: true
     }
   })
+
+  function createTray() {
+    const paths = [
+      '../../build/icon256.ico',
+      '../build/icon256.ico',
+      './build/icon256.ico',
+      '../../../../resources/icon256.ico',
+      '../../../resources/icon256.ico',
+      '../../resources/icon256.ico',
+      './resources/icon256.ico',
+      './resources/app.asar.unpacked/resources/icon256.ico',
+      '../../resources/app.asar.unpacked/resources/icon256.ico',
+      '../../../resources/app.asar.unpacked/resources/icon256.ico',
+      '../../../../resources/app.asar.unpacked/resources/icon256.ico'
+    ]
+    for (const path of paths) {
+      try {
+        if (existsSync(join(app.getAppPath(), path))) {
+          console.log(join(__dirname, path), ' icon found')
+          const nativeImageIcon = nativeImage.createFromPath(join(app.getAppPath(), path))
+          let appIcon = new Tray(nativeImageIcon)
+
+          const contextMenu = Menu.buildFromTemplate([
+            {
+              label: 'Show',
+              click: function () {
+                mainWindow.show()
+              }
+            },
+            {
+              label: 'Exit',
+              click: function () {
+                app.isQuiting = true
+                app.quit()
+              }
+            }
+          ])
+
+          appIcon.on('double-click', function (event) {
+            mainWindow.show()
+          })
+          appIcon.setToolTip('Chrolog')
+          appIcon.setContextMenu(contextMenu)
+          return appIcon
+        }
+      } catch (error) {
+        console.log(error)
+      }
+    }
+  }
+
   hookInputs()
 
-  mainWindow.on('ready-to-show', () => {
-    mainWindow.show()
-  })
+  if (!startMinimized)
+    mainWindow.on('ready-to-show', () => {
+      mainWindow.show()
+    })
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
     shell.openExternal(details.url)
@@ -101,7 +162,7 @@ function createWindow() {
   ipcMain.handle('load-settings', () => {
     return store.get('settings')
   })
-  ipcMain.on('set-auto-launch', (event, data) => {
+  ipcMain.on('set-auto-launch', (event) => {
     if (os.platform() === 'linux') {
       const desktopEnv = process.env.XDG_CURRENT_DESKTOP
 
@@ -109,7 +170,7 @@ function createWindow() {
       if (desktopEnv && desktopEnv.includes('GNOME')) {
         // Enable app to run at startup for GNOME
         app.setLoginItemSettings({
-          openAtLogin: data,
+          openAtLogin: true,
           path: process.execPath,
           args: []
         })
@@ -125,15 +186,21 @@ function createWindow() {
     } else if (os.platform() === 'win32') {
       const appPath = app.getPath('exe')
       app.setLoginItemSettings({
-        openAtLogin: data,
+        openAtLogin: true,
         path: appPath,
-        args: []
+        args: ['--hidden']
       })
     }
   })
 
-  ipcMain.on('minimize-event', () => {
-    mainWindow.minimize()
+  ipcMain.on('minimize-event', (event) => {
+    event.preventDefault()
+    mainWindow.hide()
+    tray = createTray()
+  })
+  ipcMain.on('restore', (event) => {
+    mainWindow.show()
+    tray.destroy()
   })
 
   ipcMain.on('maximize-event', () => {
@@ -147,13 +214,13 @@ function createWindow() {
   ipcMain.on('close-event', () => {
     mainWindow.close()
   })
+  if (startMinimized) tray = createTray()
 }
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(() => {
-
   // Install devtools extensions
   if (process.env.NODE_ENV === 'development')
     installExtension([REDUX_DEVTOOLS, REACT_DEVELOPER_TOOLS])

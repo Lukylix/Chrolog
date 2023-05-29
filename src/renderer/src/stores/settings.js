@@ -25,12 +25,15 @@ const settingsSlice = createSlice({
     setStartAtLaunch: (state, action) => {
       state.startAtLaunch = action.payload
     },
+    toggleStartAtLaunch: (state) => {
+      state.startAtLaunch = !state.startAtLaunch
+    },
     setIsFirstSettingsLoad: (state, action) => {
       state.isFirstSettingsLoad = action.payload
     }
   }
 })
 
-export const { setMinLogSecs, setMinLastInputSecs, setStartTrackingAtLaunch, setSettings, setStartAtLaunch, setIsFirstSettingsLoad } = settingsSlice.actions
+export const { setMinLogSecs, setMinLastInputSecs, setStartTrackingAtLaunch, setSettings, setStartAtLaunch, toggleStartAtLaunch, setIsFirstSettingsLoad } = settingsSlice.actions
 
 export default settingsSlice.reducer

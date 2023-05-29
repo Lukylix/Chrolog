@@ -4,11 +4,13 @@ import {
   setMinLastInputSecs,
   setMinLogSecs,
   setStartAtLaunch,
-  setStartTrackingAtLaunch
+  setStartTrackingAtLaunch,
+  toggleStartAtLaunch
 } from '../../stores/settings'
 import HeaderTracking from '../../components/HeaderTracking/Headertracking'
 import Toggle from '../../components/Toggle/Toggle'
 import { useEffect } from 'react'
+import { useCallback } from 'react'
 
 const { ipcRenderer } = window.require('electron')
 
@@ -19,17 +21,12 @@ function convertSecondsToMinutes(seconds) {
   return `${minutes}:${remainingSeconds < 10 ? '0' : ''}${remainingSeconds}`
 }
 
-const setAutoLaunch = (value) => {
-  ipcRenderer.send('set-auto-launch', value)
-}
-
 export default function Settings() {
   const minLogSecs = useSelector((state) => state.settings.minLogSecs)
   const minLastInputSecs = useSelector((state) => state.settings.minLastInputSecs)
   const startTrackingAtLaunch = useSelector((state) => state.settings.startTrackingAtLaunch)
   const startAtLaunch = useSelector((state) => state.settings.startAtLaunch)
   const dispatch = useDispatch()
-
   useEffect(() => {
     return () => {
       ipcRenderer.send('save-settings', {
@@ -45,6 +42,16 @@ export default function Settings() {
       <h1>Settings</h1>
       <div className="features">
         <div className="feature-item settings">
+          <h4>Start at launch</h4>
+          <button
+            style={{ backgroundColor: '#3282F7', marginBlock: '10px' }}
+            onClick={(value) => {
+              ipcRenderer.send('set-auto-launch')
+            }}
+          >
+            Enable
+          </button>
+
           <h4>Start tracking a lauch</h4>
           <Toggle
             toggled={startTrackingAtLaunch}
@@ -52,14 +59,7 @@ export default function Settings() {
               dispatch(setStartTrackingAtLaunch(value(startTrackingAtLaunch)))
             }
           />
-          <h4>Start at launch</h4>
-          <Toggle
-            toggled={startAtLaunch}
-            setIsToggled={(value) => {
-              dispatch(setStartAtLaunch(value(startAtLaunch)))
-              setAutoLaunch(startAtLaunch)
-            }}
-          />
+
           <h4>Minimum time to log {convertSecondsToMinutes(minLogSecs)}</h4>
           <Slider
             min={0}

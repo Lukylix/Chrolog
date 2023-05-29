@@ -1,5 +1,4 @@
 import { useDispatch, useSelector } from 'react-redux'
-import useTracking from '../../hooks/useTracking.js'
 import { Link, useLocation } from 'react-router-dom'
 import { ReactComponent as SettingsIcon } from '../../assets/settings.svg'
 import { ReactComponent as BackIcon } from '../../assets/back.svg'

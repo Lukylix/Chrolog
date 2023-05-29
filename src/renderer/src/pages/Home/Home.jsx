@@ -4,7 +4,6 @@ import { createProject, stopTracking, toggleProject } from '../../stores/trackin
 import { Link } from 'react-router-dom'
 import { DataList } from '../../components/Datalist/Datalist.jsx'
 import HeaderTracking from '../../components/HeaderTracking/Headertracking.jsx'
-import useTracking from '../../hooks/useTracking.js'
 import { ReactComponent as EditIcon } from '../../assets/edit.svg'
 import { ReactComponent as RemoveIcon } from '../../assets/close.svg'
 import { ReactComponent as PowerIcon } from '../../assets/power.svg'
