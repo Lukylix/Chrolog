@@ -83,8 +83,13 @@ const hookInputsLinux = () => {
 
     const nodePath = stdout.trim()
     const logPath = path.join(app.getPath('appData'), 'Chrolog/input.log')
-    let scriptPath = path.join(app.getAppPath(), '../../resources/resources/hookLinuxInputs.js')
+
+    let scriptPath
+    if (process.env.NODE_ENV === 'development')
+      scriptPath = path.join(app.getAppPath(), './resources/hookLinuxInputs.js')
+    else scriptPath = path.join(app.getAppPath(), '../../resources/resources/hookLinuxInputs.js')
     const tempFilePath = path.join(app.getPath('appData'), 'ipc_temp_file.txt')
+    tempFilePath.replace('/resources/resources', '/resources')
 
     const command = `${nodePath} ${scriptPath} -- --log ${logPath} --tempFile ${tempFilePath}`
     sudo.exec(command, options, (error, stdout) => {
