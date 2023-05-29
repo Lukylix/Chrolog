@@ -20,6 +20,8 @@ import {
 } from './utilis/system'
 import Store from 'electron-store'
 import os from 'os'
+import installExtension, { REDUX_DEVTOOLS, REACT_DEVELOPER_TOOLS } from 'electron-devtools-installer'
+
 
 const store = new Store()
 
@@ -151,6 +153,12 @@ function createWindow() {
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(() => {
+
+  // Install devtools extensions
+  if (process.env.NODE_ENV === 'development')
+    installExtension([REDUX_DEVTOOLS, REACT_DEVELOPER_TOOLS])
+      .then((name) => console.log(`Added Extension:  ${name}`))
+      .catch((err) => console.log('An error occurred: ', err))
   // Set app user model id for windows
   electronApp.setAppUserModelId('com.electron')
 

@@ -51,6 +51,8 @@ if (process.platform === 'win32') {
 } else if (process.platform === 'linux') {
 }
 
+let lastMouseEventTime = Date.now()
+
 const hookInputsWin32 = () => {
   const instance = new Chrolog()
   instance.setKeyboardCallback(() => {
@@ -59,6 +61,7 @@ const hookInputsWin32 = () => {
     })
   })
   instance.setMouseCallback(() => {
+    if (lastMouseEventTime + 500 > Date.now()) return
     webContents.getAllWebContents().forEach((webContent) => {
       webContent.send('mouse_event')
     })

@@ -112,19 +112,7 @@ const useTracking = (isMaster = false) => {
     if (shouldTrack && isMaster) track()
   }, [shouldTrack])
 
-  const handleCreateProject = useCallback((projectName, associatedApps) => {
-    if (!projectName) {
-      // Handle the case where projectName is not defined
-      console.error('No project name defined')
-      return
-    }
-    dispatch(
-      createProject({
-        projectName,
-        projectData: { toggled: true, apps: associatedApps }
-      })
-    )
-  }, [])
+
 
   const loadData = useCallback(async () => {
     if (Object.keys(trackingData).length > 0 || isLoadingData) return
@@ -174,18 +162,6 @@ const useTracking = (isMaster = false) => {
   useEffect(() => {
     if (processCount == 0) getProcesses()
   }, [processCount])
-
-  const handleStopTrack = useCallback(() => {
-    dispatch(setIsTracking(false))
-    dispatch(stopTrackingAll())
-  }, [])
-
-  return {
-    handleTrack: () => dispatch(setIsTracking(true)),
-    handleCreateProject,
-    loadData,
-    handleStopTrack
-  }
 }
 
 export default useTracking

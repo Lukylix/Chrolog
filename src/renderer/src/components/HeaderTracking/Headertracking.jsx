@@ -1,4 +1,4 @@
-import { useSelector } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
 import useTracking from '../../hooks/useTracking.js'
 import { Link, useLocation } from 'react-router-dom'
 import { ReactComponent as SettingsIcon } from '../../assets/settings.svg'
@@ -7,12 +7,21 @@ import { ReactComponent as FileIcon } from '../../assets/file.svg'
 import { ReactComponent as PowerIcon } from '../../assets/power.svg'
 import { ReactComponent as ChrologIcon } from '../../assets/chrolog.svg'
 import './headerTracker.css'
+import { setIsTracking } from '../../stores/tracking.js'
+import { stopTrackingAll } from '../../stores/trackingData.js'
+import { useCallback } from 'react'
 
 const { ipcRenderer } = window.require('electron')
 
 export default function HeaderTracking() {
   const isTracking = useSelector((state) => state.tracking.isTracking)
-  const { handleTrack, handleStopTrack } = useTracking()
+
+  const dispatch = useDispatch()
+  const handleTrack = () => dispatch(setIsTracking(true))
+  const handleStopTrack = useCallback(() => {
+    dispatch(setIsTracking(false))
+    dispatch(stopTrackingAll())
+  }, [])
   const location = useLocation()
   const path = location.pathname
   return (

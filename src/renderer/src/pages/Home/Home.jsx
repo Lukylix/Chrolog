@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { stopTracking, toggleProject } from '../../stores/trackingData.js'
+import { createProject, stopTracking, toggleProject } from '../../stores/trackingData.js'
 import { Link } from 'react-router-dom'
 import { DataList } from '../../components/Datalist/Datalist.jsx'
 import HeaderTracking from '../../components/HeaderTracking/Headertracking.jsx'
@@ -34,14 +34,22 @@ const Home = () => {
   const [inputValue, setInputValue] = useState('')
   const dispatch = useDispatch()
 
-  const { handleCreateProject, handleTrack } = useTracking()
+  const handleCreateProject = useCallback((projectName, associatedApps) => {
+    if (!projectName) {
+      // Handle the case where projectName is not defined
+      console.error('No project name defined')
+      return
+    }
+    dispatch(
+      createProject({
+        projectName,
+        projectData: { toggled: true, apps: associatedApps }
+      })
+    )
+  }, [])
 
   const removeTrackedApp = useCallback((appName) => {
     dispatch(setTrackedApps(trackedApps.filter((trackedApp) => trackedApp.name !== appName)))
-  }, [])
-
-  useEffect(() => {
-    if (isTracking) handleTrack()
   }, [])
 
   return (

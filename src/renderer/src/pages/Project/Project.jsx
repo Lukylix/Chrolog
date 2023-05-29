@@ -12,7 +12,6 @@ import HeaderTracking from '../../components/HeaderTracking/Headertracking.jsx'
 import { DataList } from '../../components/Datalist/Datalist.jsx'
 import ProjectBarCharts from '../../components/ProjectBarChart/ProjectBarChart.jsx'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import useTracking from '../../hooks/useTracking.js'
 import { ReactComponent as RemoveIcon } from '../../assets/close.svg'
 import { ReactComponent as ChevronDown } from '../../assets/chevron_down.svg'
 import { ReactComponent as PowerIcon } from '../../assets/power.svg'
@@ -77,8 +76,6 @@ export default function Project() {
   const [currentProjectTrackingData, setCurrentProjectTrackingData] = useState(project)
 
   const dispatch = useDispatch()
-
-  const { handleTrack } = useTracking()
 
   const removeTrackedApp = useCallback((appName) => {
     dispatch(removeTrackedAppAction({ appName, projectName: name }))
@@ -148,13 +145,13 @@ export default function Project() {
     for (const log of projectAppsSorted) {
       if (!isFirst)
         projectBars.push({
-          load: space.toFixed(3),
+          load: space.toFixed(2),
           isSpace: true,
           name: log.name,
           color: 'transparent'
         })
       projectBars.push({
-        load: ((log.elapsedTime / centPercent) * 100).toFixed(5),
+        load: ((log.elapsedTime / centPercent) * 100).toFixed(2),
         isSpace: false,
         name: log.name,
         color: appsColorMap[log.name.toLowerCase()]
@@ -169,10 +166,6 @@ export default function Project() {
     return () => {
       dispatch(setCurrentProject(''))
     }
-  }, [])
-
-  useEffect(() => {
-    if (isTracking) handleTrack()
   }, [])
 
   return (
@@ -201,12 +194,12 @@ export default function Project() {
                       </h3>
                       {project.toggled ? (
                         <PowerIcon
-                          fill="#1AA68A"
+                          fill="#FF6347"
                           height="30px"
                           onClick={() => {
-                            dispatch(toggleProject({ projectName: projectKey }))
-                            if (trackingData[projectKey].toggled) {
-                              dispatch(stopTracking({ projectName: projectKey }))
+                            dispatch(toggleProject({ projectName: name }))
+                            if (trackingData[name].toggled) {
+                              dispatch(stopTracking({ projectName: name }))
                             }
                           }}
                         />
@@ -215,9 +208,9 @@ export default function Project() {
                           fill="#1AA68A"
                           height="30px"
                           onClick={() => {
-                            dispatch(toggleProject({ projectName: name }))
-                            if (trackingData[name].toggled) {
-                              dispatch(stopTracking({ projectName: name }))
+                            dispatch(toggleProject({ projectName: projectKey }))
+                            if (trackingData[projectKey].toggled) {
+                              dispatch(stopTracking({ projectName: projectKey }))
                             }
                           }}
                         />
@@ -360,22 +353,18 @@ export default function Project() {
                   ))}
                 </div>
               </div>
-              {process.platform !== 'win32' && (
-                <div className="feature-item grid-fill">
-                  <ProjectBarCharts appsColorMap={appsColorMap} />
-                </div>
-              )}
+
+              <div className="feature-item grid-fill">
+                <ProjectBarCharts appsColorMap={appsColorMap} />
+              </div>
+
               <div className="feature-item grid-fill">
                 <details>
                   <summary>
                     Tracked Events details
                     <ChevronDown height={'24px'} fill="white" />
                   </summary>
-                  {[
-                    ...(process.platform === 'win32'
-                      ? projectAppsSorted
-                      : projectAppsSortedFiltered)
-                  ].map((app, i) => (
+                  {projectAppsSortedFiltered.map((app, i) => (
                     <div key={i} className="tracked-app">
                       <div
                         className="app-color"
