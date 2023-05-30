@@ -168,7 +168,7 @@ const useTracking = (isMaster = false) => {
   }, [])
 
   useEffect(() => {
-    if (isMaster) return
+    if (!isMaster) return
     if (processCount == 0) getProcesses()
   }, [processCount])
   return { getProcesses }
