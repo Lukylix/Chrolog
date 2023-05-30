@@ -51,8 +51,12 @@
   margin-top: 10px;
 }
 
-.tracked-app .app-end {
+.flex-end {
   margin-left: auto;
+}
+
+.remove-icon:hover {
+  fill: #ff6347;
 }
 
 .input-container {

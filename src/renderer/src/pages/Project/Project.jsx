@@ -5,7 +5,8 @@ import {
   toggleProject,
   removeTrackedApp as removeTrackedAppAction,
   addTrackedApp,
-  saveTrackingData
+  saveTrackingData,
+  removeTrackingLog
 } from '../../stores/trackingData.js'
 import { setTrackedApps, setCurrentProject } from '../../stores/tracking.js'
 import HeaderTracking from '../../components/HeaderTracking/Headertracking.jsx'
@@ -13,6 +14,7 @@ import { DataList } from '../../components/Datalist/Datalist.jsx'
 import ProjectBarCharts from '../../components/ProjectBarChart/ProjectBarChart.jsx'
 import { memo, useCallback, useEffect, useMemo, useState } from 'react'
 import { ReactComponent as RemoveIcon } from '../../assets/close.svg'
+import { ReactComponent as DeleteIcon } from '../../assets/delete.svg'
 import { ReactComponent as ChevronDown } from '../../assets/chevron_down.svg'
 import { ReactComponent as PowerIcon } from '../../assets/power.svg'
 import Select from 'react-select'
@@ -56,7 +58,7 @@ let pastelColors = [
 
 const operators = ['>', '>=', '<', '<=']
 
-const TrackedApp = memo(({ app, appsColorMap }) => {
+const TrackedApp = memo(({ app, appsColorMap, removeTrackingLog }) => {
   return (
     <div className="tracked-app">
       <div
@@ -66,7 +68,16 @@ const TrackedApp = memo(({ app, appsColorMap }) => {
       <h4>
         {app.name} - {convertMs(app.elapsedTime)}
       </h4>
-      <p className="app-end">{convertDate(app.endDate)}</p>
+      <div className="d-inline flex-end">
+        <p>{convertDate(app.endDate)}</p>
+        <DeleteIcon
+          className="remove-icon"
+          height="20px"
+          width="20px"
+          fill="white"
+          onClick={() => removeTrackingLog(app.id)}
+        />
+      </div>
     </div>
   )
 })
@@ -294,6 +305,15 @@ export default function Project() {
     ipcRenderer.send('delete-tracked-app', { appName, projectName: name })
   }, [])
 
+  const removeTrackingLogCallback = useCallback((id) => {
+    dispatch(removeTrackingLog({ id, projectName: name }))
+    setCurrentProjectTrackingData((trackingData) => ({
+      ...trackingData,
+      trackingLogs: trackingData.trackingLogs.filter((log) => log.id !== id)
+    }))
+    ipcRenderer.send('delete-tracking-log', id)
+  }, [])
+
   const removeFilter = useCallback((index) => {
     setFilters(filters.filter((_, i) => i !== index))
   }, [])
@@ -444,7 +464,12 @@ export default function Project() {
                     <ChevronDown height={'24px'} fill="white" />
                   </summary>
                   {projectAppsSortedFiltered.map((app, i) => (
-                    <TrackedApp key={i} app={app} appsColorMap={appsColorMap} />
+                    <TrackedApp
+                      key={i}
+                      app={app}
+                      appsColorMap={appsColorMap}
+                      removeTrackingLog={removeTrackingLogCallback}
+                    />
                   ))}
                 </details>
               </div>

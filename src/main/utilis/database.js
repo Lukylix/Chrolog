@@ -131,7 +131,8 @@ export async function createTrackingLogListener(event, trackingData) {
   const { projectName, trackingLog } = trackingData
   const { name, elapsedTime, startDate, endDate } = trackingLog
   const insertTrackingSql = `INSERT INTO tracking_data (projectName, appName, elapsedTime, startDate, endDate) VALUES (?, ?, ?, ?, ?)`
-  return await run(insertTrackingSql, [projectName, name, elapsedTime, startDate, endDate])
+  const trackingLogRes = await run(insertTrackingSql, [projectName, name, elapsedTime, startDate, endDate])
+  return trackingLogRes.lastID
 }
 
 // Update a tracking log
@@ -143,7 +144,7 @@ export async function updateTrackingLogListener(event, trackingLog) {
 
 // Delete a tracking log
 export async function deleteTrackingLogListener(event, logId) {
-  const deleteTrackingSql = `DELETE FROM tracking_data WHERE logId = ?`
+  const deleteTrackingSql = `DELETE FROM tracking_data WHERE id = ?`
   return await run(deleteTrackingSql, [logId])
 }
 
@@ -226,9 +227,8 @@ export const loadDataListener = (event, filters = []) => {
             'CREATE TABLE if not exists tracking_data (id INTEGER PRIMARY KEY AUTOINCREMENT, projectName TEXT, appName TEXT, elapsedTime INTEGER, startDate INTEGER, endDate INTEGER)'
           )
 
-          const selectTrackingSql = `SELECT * FROM tracking_data ${
-            filters.length ? 'WHERE ' : ''
-          }${filters.map((filter) => `elapsedTime ${filter.operator} ?`).join(' AND ')}`
+          const selectTrackingSql = `SELECT * FROM tracking_data ${filters.length ? 'WHERE ' : ''
+            }${filters.map((filter) => `elapsedTime ${filter.operator} ?`).join(' AND ')}`
           const filterValues = filters.map((filter) => (parseInt(filter.value) || 0) * 1000)
           db.all(selectTrackingSql, filterValues, (err, trackingRows) => {
             if (err) return reject(err)
