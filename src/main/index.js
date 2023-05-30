@@ -149,19 +149,19 @@ function createWindow() {
 
   ipcMain.handle('get-process-count', getProcessCountListener)
 
-  ipcMain.on('open-config-folder', () => {
+  ipcMain.on('open-config-folder', async () => {
     const appDataPath = app.getPath('appData')
     const dirPath = join(appDataPath, 'Chrolog/storage')
     shell.openPath(dirPath)
   })
 
-  ipcMain.on('save-settings', (event, data) => {
+  ipcMain.on('save-settings', async (event, data) => {
     store.set('settings', data)
   })
   ipcMain.handle('load-settings', () => {
     return store.get('settings')
   })
-  ipcMain.on('set-auto-launch', (event) => {
+  ipcMain.on('set-auto-launch', async (event) => {
     if (os.platform() === 'linux') {
       const desktopEnv = process.env.XDG_CURRENT_DESKTOP
 
@@ -192,17 +192,17 @@ function createWindow() {
     }
   })
 
-  ipcMain.on('minimize-event', (event) => {
+  ipcMain.on('minimize-event', async (event) => {
     event.preventDefault()
     mainWindow.hide()
     tray = createTray()
   })
-  ipcMain.on('restore', (event) => {
+  ipcMain.on('restore', async (event) => {
     mainWindow.show()
     tray.destroy()
   })
 
-  ipcMain.on('maximize-event', () => {
+  ipcMain.on('maximize-event', async () => {
     if (mainWindow.isMaximized()) {
       mainWindow.unmaximize()
     } else {
@@ -210,7 +210,7 @@ function createWindow() {
     }
   })
 
-  ipcMain.on('close-event', () => {
+  ipcMain.on('close-event', async () => {
     mainWindow.close()
   })
   if (startMinimized) tray = createTray()

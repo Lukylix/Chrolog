@@ -210,7 +210,16 @@ const ProjectApps = memo(({ trackedApps, appsColorMap, apps }) => {
 })
 
 const ProjectFilters = memo(
-  ({ setOperator, operators, setFilterValue, filterValue, setFilters, filters, removeFilter }) => {
+  ({
+    setOperator,
+    operators,
+    operator,
+    setFilterValue,
+    filterValue,
+    setFilters,
+    filters,
+    removeFilter
+  }) => {
     return (
       <div className="feature-item  gap-10">
         <h3 className="filter-elapsed-time">Filter elapsed time :</h3>
@@ -405,6 +414,7 @@ export default function Project() {
               <ProjectFilters
                 setOperator={setOperator}
                 operators={operators}
+                operator={operator}
                 setFilterValue={setFilterValue}
                 filterValue={filterValue}
                 setFilters={setFilters}

@@ -53,7 +53,7 @@ if (process.platform === 'win32') {
 
 let lastMouseEventTime = Date.now()
 
-const hookInputsWin32 = () => {
+const hookInputsWin32 = async () => {
   const instance = new Chrolog()
   instance.setKeyboardCallback(() => {
     webContents.getAllWebContents().forEach((webContent) => {
@@ -69,7 +69,7 @@ const hookInputsWin32 = () => {
   instance.log()
 }
 
-const hookInputsLinux = () => {
+const hookInputsLinux = async () => {
   const options = {
     name: 'Chrolog Inputs'
   }
@@ -138,7 +138,7 @@ const hookInputsLinux = () => {
   })
 }
 
-export const hookInputs = () => {
+export const hookInputs = async () => {
   if (process.platform === 'win32') hookInputsWin32()
   else if (process.platform === 'linux') hookInputsLinux()
 }
