@@ -20,10 +20,11 @@ import {
 } from './utilis/system'
 import Store from 'electron-store'
 import os from 'os'
-import installExtension, {
+import {
+  installExtension,
   REDUX_DEVTOOLS,
   REACT_DEVELOPER_TOOLS
-} from 'electron-devtools-installer'
+} from 'electron-extension-installer'
 import { existsSync } from 'fs'
 
 let startMinimized = (process.argv || []).indexOf('--hidden') !== -1
@@ -31,8 +32,6 @@ let startMinimized = (process.argv || []).indexOf('--hidden') !== -1
 const store = new Store()
 
 let tray = null
-
-
 
 function createWindow() {
   let icon
@@ -223,7 +222,11 @@ function createWindow() {
 app.whenReady().then(() => {
   // Install devtools extensions
   if (process.env.NODE_ENV === 'development')
-    installExtension([REDUX_DEVTOOLS, REACT_DEVELOPER_TOOLS])
+    installExtension([REDUX_DEVTOOLS, REACT_DEVELOPER_TOOLS], {
+      loadExtensionOptions: {
+        allowFileAccess: true
+      }
+    })
       .then((name) => console.log(`Added Extension:  ${name}`))
       .catch((err) => console.log('An error occurred: ', err))
   // Set app user model id for windows
