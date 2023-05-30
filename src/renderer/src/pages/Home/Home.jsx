@@ -10,6 +10,7 @@ import { ReactComponent as PowerIcon } from '../../assets/power.svg'
 import { setCurrentProject, setTrackedApps } from '../../stores/tracking.js'
 import './home.css'
 import Loader from '../../components/Loader/Loader.jsx'
+import DatalistProcesses from '../../components/DatalistProcesses/DatalistProcesses.jsx'
 
 const convertSeconds = (seconds) => {
   isNaN(seconds) && (seconds = 0)
@@ -69,32 +70,7 @@ const Home = () => {
                       placeholder="Project Name"
                     />
 
-                    <DataList
-                      data={processes}
-                      dataKey="name"
-                      placeholder="Select apps to track ..."
-                      setSelecteds={(selecteds) => dispatch(setTrackedApps(selecteds(trackedApps)))}
-                      onChange={setInputValue}
-                      renderItem={(process, i, { onClick }) => {
-                        return (
-                          <div key={i}>
-                            {process.icon && <img src={process.icon} alt={process.name} />}
-                            <option
-                              onClick={() => onClick(process)}
-                              style={{
-                                display: process.name
-                                  ?.toLowerCase()
-                                  .includes(inputValue.toLowerCase())
-                                  ? 'block'
-                                  : 'none'
-                              }}
-                            >
-                              {process.name}
-                            </option>
-                          </div>
-                        )
-                      }}
-                    />
+                    <DatalistProcesses inputValue={inputValue} setInputValue={setInputValue} />
                   </section>
                   <button
                     onClick={() => {

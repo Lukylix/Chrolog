@@ -260,7 +260,6 @@ const processQueueItem = async () => {
 
   isProcessing = true
   const { processId, snapshot, entry } = processQueue.shift()
-  await timeoutPromise(50)
   await getProcessInfos(processId, snapshot, entry)
   processQueueItem()
 }
@@ -297,19 +296,22 @@ const getProcessInfos = async (processId) => {
   }
   completedProcesses += 1
   webContents.getAllWebContents().forEach((webContent) => {
-    webContent.send('processes-event', processes)
+    webContent.send('process-completed-event', completedProcesses)
   })
-  if (completedProcesses === processesToBeFetched) {
+  if (completedProcesses >= processesToBeFetched && completedProcesses > 5) {
     console.log("Sending 'processes-event' to all renderer processes")
     webContents.getAllWebContents().forEach((webContent) => {
       webContent.send('processes-event', processes)
     })
+    processes = []
+    processesToBeFetched = 0
+    completedProcesses = 0
   }
   // }
 }
 
 const getProcessesListenerWindows = async () => {
-  if (lastProcessFetchTime + 1000 > Date.now() || processes.length > 0) return
+  if (lastProcessFetchTime + 1000 > Date.now()) return
   console.log('get-windows-with-icons')
   lastProcessFetchTime = Date.now()
   processes = []
@@ -356,6 +358,9 @@ const getProcessesListenerLinux = async () => {
     const processPath = path.join('/proc', pid)
     const cmdline = fs.readFileSync(path.join(processPath, 'cmdline')).toString().split('\0')
     const name = cmdline[0].split('/').pop().split(' ')[0]
+    webContents.getAllWebContents().forEach((webContent) => {
+      webContent.send('process-completed-event', completedProcesses)
+    })
     return {
       pid: Number(pid),
       name
@@ -372,7 +377,9 @@ const getProcessesListenerLinux = async () => {
   webContents.getAllWebContents().forEach((webContent) => {
     webContent.send('processes-event', processes)
   })
-  return processes
+  processes = []
+  processesToBeFetched = 0
+  completedProcesses = 0
 }
 
 export const getProcessesListener = async () => {
@@ -384,12 +391,12 @@ let processCount = 0
 let lastTimeFetchingProcessCount = 0
 
 export const getProcessCountListener = async () => {
-  if (lastTimeFetchingProcessCount + 1000 > Date.now()) return processCount
-  if (processCount > 0) return processCount
+  if (lastTimeFetchingProcessCount + 1000 > Date.now() || processes.length > 0) return processCount
   if (process.platform === 'linux') {
     processCount = fs.readdirSync('/proc').filter((name) => !isNaN(Number(name))).length
     return processCount
   } else if (process.platform === 'win32') {
+    processCount = 0
     const CountWindowsProc = ffi.Callback('int', ['long', 'int32'], () => {
       processCount += 1
       return 1

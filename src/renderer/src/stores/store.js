@@ -3,6 +3,8 @@ import trackingDataReducer from './trackingData'
 import processesReducer from './processes'
 import trackingReducer from './tracking'
 import settingsReducer from './settings'
+import initialLoadReducer from './initialLoad'
+import initialLoad from './initialLoad'
 
 const addSettingsMiddleware = storeAPI => next => action => {
   if (action.type === 'trackingData/updateTrackingDataAfterInactivity') {
@@ -45,7 +47,8 @@ const store = configureStore({
     trackingData: trackingDataReducer,
     processes: processesReducer,
     tracking: trackingReducer,
-    settings: settingsReducer
+    settings: settingsReducer,
+    initialLoad: initialLoadReducer,
   },
   middleware: (getDefaultMiddleware) => getDefaultMiddleware().concat(addSettingsMiddleware)
 })

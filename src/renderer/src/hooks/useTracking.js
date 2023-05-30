@@ -23,6 +23,7 @@ import {
   setShouldRestartTracking
 } from '../stores/tracking.js'
 import { setIsFirstSettingsLoad, setSettings } from '../stores/settings.js'
+import { setInitialLoad } from '../stores/initialLoad.js'
 
 const { ipcRenderer } = window.require('electron')
 
@@ -67,7 +68,7 @@ const useTracking = (isMaster = false) => {
             lastTrackTime: lastTrackTime
           })
         )
-        dispatch(setLastTrackTime(lastInputTime))
+        dispatch(setLastTrackTime(Date.now()))
       }
       return
     }
@@ -124,17 +125,22 @@ const useTracking = (isMaster = false) => {
   }, [trackingData, isLoadingData])
 
   const getProcesses = useCallback(async () => {
-    if (processes.length > 0 || isGettingProcessList) return
+    if (isGettingProcessList) return
+    dispatch(setCurrentProcess(0))
+    dispatch(setCompletedProcess(0))
     dispatch(setIsGettingProcessList(true))
     ipcRenderer.send('get-windows-with-icons')
+
   }, [processes, isGettingProcessList])
+
   const getProcessCount = useCallback(async () => {
     if (processCount > 0) return
     const count = await ipcRenderer.invoke('get-process-count')
-    dispatch(setProcessCount(count))
+    dispatch(setProcessCount(count * 2))
   }, [processCount])
 
   useEffect(() => {
+    if (!isMaster) return
     ipcRenderer.on('window-closed', () => {
       dispatch(setIsTracking(false))
     })
@@ -145,8 +151,10 @@ const useTracking = (isMaster = false) => {
       dispatch(setCompletedProcess(count))
     })
     ipcRenderer.on('processes-event', (event, processesRes) => {
+      if (processesRes.length === 0) return
       dispatch(setProcesses(processesRes))
       dispatch(setIsGettingProcessList(false))
+      dispatch(setInitialLoad(false))
     })
     ipcRenderer.on('keyboard_event', () => {
       dispatch(setLastInputTime(Date.now()))
@@ -160,8 +168,10 @@ const useTracking = (isMaster = false) => {
   }, [])
 
   useEffect(() => {
+    if (isMaster) return
     if (processCount == 0) getProcesses()
   }, [processCount])
+  return { getProcesses }
 }
 
 export default useTracking

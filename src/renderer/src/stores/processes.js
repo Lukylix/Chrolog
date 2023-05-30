@@ -5,7 +5,7 @@ const processesSlice = createSlice({
   initialState: [],
   reducers: {
     setProcesses: (state, action) => {
-      return action.payload
+      return [...new Set([...state, ...action.payload])]
     },
     addProcess: (state, action) => {
       state.push(action.payload)

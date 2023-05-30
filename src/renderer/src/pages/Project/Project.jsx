@@ -305,13 +305,13 @@ export default function Project() {
     ipcRenderer.send('delete-tracked-app', { appName, projectName: name })
   }, [])
 
-  const removeTrackingLogCallback = useCallback((id) => {
-    dispatch(removeTrackingLog({ id, projectName: name }))
+  const removeTrackingLogCallback = useCallback((trackingLog) => {
+    dispatch(removeTrackingLog({ ...trackingLog, projectName: name }))
     setCurrentProjectTrackingData((trackingData) => ({
       ...trackingData,
       trackingLogs: trackingData.trackingLogs.filter((log) => log.id !== id)
     }))
-    ipcRenderer.send('delete-tracking-log', id)
+    ipcRenderer.send('delete-tracking-log', { ...trackingLog, projectName: name })
   }, [])
 
   const removeFilter = useCallback((index) => {

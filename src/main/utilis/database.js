@@ -143,9 +143,10 @@ export async function updateTrackingLogListener(event, trackingLog) {
 }
 
 // Delete a tracking log
-export async function deleteTrackingLogListener(event, logId) {
-  const deleteTrackingSql = `DELETE FROM tracking_data WHERE id = ?`
-  return await run(deleteTrackingSql, [logId])
+export async function deleteTrackingLogListener(event, data) {
+  const { name, projectName, endDate, startDate } = data
+  const deleteTrackingSql = `DELETE FROM tracking_data WHERE projectName = ? AND name = ? AND endDate = ? AND startDate = ?`
+  return await run(deleteTrackingSql, [projectName, name, endDate, startDate])
 }
 
 // Update project properties (except trackingLogs)

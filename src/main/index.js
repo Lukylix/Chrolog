@@ -130,7 +130,7 @@ function createWindow() {
 
   ipcMain.on('update-tracking-log', updateTrackingLogListener)
   ipcMain.on('delete-tracking-log', deleteTrackingLogListener)
-  ipcMain.handle('create-tracking-log', createTrackingLogListener)
+  ipcMain.on('create-tracking-log', createTrackingLogListener)
   ipcMain.on('update-project-properties', updateProjectPropertiesListener)
   ipcMain.on('create-project', createProjectListener)
   ipcMain.on('delete-tracked-app', deleteTrackedAppListener)

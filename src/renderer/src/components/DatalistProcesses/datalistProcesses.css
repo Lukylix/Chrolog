@@ -1,0 +1,18 @@
+.load-processes {
+  position: absolute;
+  top: -7px;
+  height: 5px;
+  width: 100%;
+  border-radius: 5px;
+  background-color: #202020;
+}
+
+.load-processes-bar {
+  height: 100%;
+  background-color: #1aa68a;
+  border-radius: 5px;
+}
+
+.refresh-icon {
+  margin-left: 5px;
+}

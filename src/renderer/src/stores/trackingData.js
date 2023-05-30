@@ -34,8 +34,10 @@ const trackingDataSlice = createSlice({
       }
     },
     removeTrackingLog: (state, action) => {
-      const { id, projectName } = action.payload
-      const trackingLogs = state?.[projectName]?.trackingLogs.filter((log) => log.id !== id)
+      const { name, projectName, endDate, startDate } = action.payload
+      const trackingLogs = state?.[projectName]?.trackingLogs.filter(
+        (log) => log.name !== name && log.startDate !== startDate && log.endDate !== endDate
+      )
       return {
         ...state,
         [projectName]: {
@@ -91,9 +93,8 @@ const trackingDataSlice = createSlice({
         let trackingLogs = []
         for (let log of state[projectName]?.trackingLogs) {
           if (!log.endDate) {
-            let trackingLogId
             if (Date.now() - log.startDate > minLogSecs * 1000) {
-              trackingLogId = ipcRenderer.invoke('create-tracking-log', {
+              ipcRenderer.send('create-tracking-log', {
                 projectName,
                 trackingLog: {
                   ...log,
@@ -103,7 +104,6 @@ const trackingDataSlice = createSlice({
               })
               log = {
                 ...log,
-                id: trackingLogId || log.id || null,
                 elapsedTime: Date.now() - log.startDate,
                 endDate: Date.now(),
                 toKeep: true
@@ -201,7 +201,7 @@ const trackingDataSlice = createSlice({
         }
       }
     },
-    updateTrackingDataAfterInactivity: async (state, action) => {
+    updateTrackingDataAfterInactivity: (state, action) => {
       const { minLogSecs } = action.payload.settings
       const { trackedAppName } = action.payload.trackingData
       const matchingProjectsKeys = Object.keys(state).filter(
@@ -220,9 +220,8 @@ const trackingDataSlice = createSlice({
 
         for (const log of project?.trackingLogs || []) {
           if (log.name === trackedAppName && !log.endDate) {
-            let trackingLogId
             if (elapsedTime > minLogSecs * 1000)
-              trackingLogId = await ipcRenderer.invoke('create-tracking-log', {
+              ipcRenderer.send('create-tracking-log', {
                 projectName,
                 trackingLog: {
                   ...log,
@@ -234,7 +233,6 @@ const trackingDataSlice = createSlice({
 
             return {
               ...log,
-              id: trackingLogId || log.id || null,
               elapsedTime: elapsedTime,
               toKeep: elapsedTime > minLogSecs * 1000,
               endDate: Date.now()
@@ -247,7 +245,8 @@ const trackingDataSlice = createSlice({
           }
           return log
         }
-        trackingLogs = trackingLogs.filter((log) => !log.elapsedTime < 0 && log.toKeep)
+        trackingLogs = trackingLogs
+          .filter((log) => !log.elapsedTime < 0 && log.toKeep)
           .map((log) => {
             delete log.toKeep
             return log
