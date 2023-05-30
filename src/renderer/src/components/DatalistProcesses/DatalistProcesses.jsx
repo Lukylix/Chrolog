@@ -2,7 +2,7 @@ import { useDispatch, useSelector } from 'react-redux'
 import { setTrackedApps } from '../../stores/tracking'
 import { ReactComponent as RefreshIcon } from '../../assets/refresh.svg'
 import useTracking from '../../hooks/useTracking'
-import { DataList } from '../DataList'
+import { DataList } from '../Datalist/Datalist'
 import './datalistProcesses.css'
 
 export default function DatalistProcesses({ inputValue, setInputValue }) {
