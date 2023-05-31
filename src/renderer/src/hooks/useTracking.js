@@ -8,7 +8,6 @@ import {
   saveTrackingData
 } from '../stores/trackingData.js'
 import { setProcesses } from '../stores/processes.js'
-import { io } from 'socket.io-client'
 
 import {
   setIsTracking,
