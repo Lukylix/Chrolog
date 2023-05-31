@@ -1,4 +1,4 @@
-import { app, shell, BrowserWindow, ipcMain, Tray, Menu, nativeImage } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, Tray, Menu, nativeImage, webContents } from 'electron'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { join } from 'path'
 import {
@@ -26,6 +26,7 @@ import {
   REACT_DEVELOPER_TOOLS
 } from 'electron-extension-installer'
 import { existsSync } from 'fs'
+import { createServer as createHttpServer } from 'http'
 
 let startMinimized = (process.argv || []).indexOf('--hidden') !== -1
 
@@ -159,6 +160,59 @@ function createWindow() {
   ipcMain.on('save-settings', async (event, data) => {
     store.set('settings', data)
   })
+  let httpServer
+  const createServer = async () => {
+    httpServer = createHttpServer((req, res) => {
+      if (req.method === 'POST') {
+        if (req.url.includes('/current-tab')) {
+          let body = ''
+          req.on('data', (chunk) => {
+            body += chunk.toString()
+          })
+          req.on('end', () => {
+            const parsedBody = JSON.parse(body)
+            webContents.getAllWebContents().forEach((webContents) => {
+              webContents.send('current-tab', parsedBody?.domain)
+            })
+            res.end('ok')
+          })
+        } else if (req.url.includes('/add-tab')) {
+          let body = ''
+          req.on('data', (chunk) => {
+            body += chunk.toString()
+          })
+          req.on('end', () => {
+            const parsedBody = JSON.parse(body)
+            console.log('add-tab', parsedBody?.domain)
+            webContents.getAllWebContents().forEach((webContents) => {
+              webContents.send('add-tab', parsedBody?.domain)
+            })
+            store.set('settings', {
+              ...store.get('settings'),
+              sitesExclusions: [
+                ...new Set([...store.get('settings')?.sitesExclusions, parsedBody?.domain])
+              ]
+            })
+            res.end('ok')
+          })
+        }
+      }
+    })
+    httpServer.listen(9807)
+  }
+
+  if (store.get('settings')?.extensionEnabled) {
+    createServer()
+  }
+
+  ipcMain.on('toggle-extension', async (event, value) => {
+    if (value && !httpServer) {
+      createServer()
+    } else if (!value && httpServer) {
+      httpServer.close()
+    }
+  })
+
   ipcMain.handle('load-settings', () => {
     return store.get('settings')
   })

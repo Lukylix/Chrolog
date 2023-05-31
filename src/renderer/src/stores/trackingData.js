@@ -213,9 +213,6 @@ const trackingDataSlice = createSlice({
       for (const projectName of matchingProjectsKeys) {
         const project = state[projectName]
         const elapsedTime = project?.elapsedTime || 0
-        const trackedApp = state[projectName]?.trackingLogs?.find(
-          (app) => app.name === trackedAppName && app.startDate && !app.endDate
-        )
         let trackingLogs
 
         for (const log of project?.trackingLogs || []) {

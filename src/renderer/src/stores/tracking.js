@@ -22,6 +22,7 @@ const trackingSlice = createSlice({
     shouldTrack: false,
     isTrackingRunning: false,
     shouldRestartTracking: false,
+    currentTab: '',
     currentPeriod: {
       start: startDay.getTime(),
       end: endDay.getTime()
@@ -72,6 +73,9 @@ const trackingSlice = createSlice({
     },
     setCurrentPeriod: (state, action) => {
       state.currentPeriod = action.payload
+    },
+    setCurrentTab: (state, action) => {
+      state.currentTab = action.payload
     }
   }
 })
@@ -91,7 +95,8 @@ export const {
   setShouldTrack,
   setIsTrackingRunning,
   setShouldRestartTracking,
-  setCurrentPeriod
+  setCurrentPeriod,
+  setCurrentTab
 } = trackingSlice.actions
 
 export default trackingSlice.reducer

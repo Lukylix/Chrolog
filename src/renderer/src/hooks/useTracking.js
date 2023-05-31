@@ -8,6 +8,7 @@ import {
   saveTrackingData
 } from '../stores/trackingData.js'
 import { setProcesses } from '../stores/processes.js'
+import { io } from 'socket.io-client'
 
 import {
   setIsTracking,
@@ -20,9 +21,10 @@ import {
   setCompletedProcess,
   setShouldTrack,
   setIsTrackingRunning,
-  setShouldRestartTracking
+  setShouldRestartTracking,
+  setCurrentTab
 } from '../stores/tracking.js'
-import { setIsFirstSettingsLoad, setSettings } from '../stores/settings.js'
+import { setIsFirstSettingsLoad, setSettings, setSitesExclusions } from '../stores/settings.js'
 import { setInitialLoad } from '../stores/initialLoad.js'
 
 const { ipcRenderer } = window.require('electron')
@@ -41,7 +43,11 @@ const useTracking = (isMaster = false) => {
   const lastTrackTime = useSelector((state) => state.tracking.lastTrackTime)
   const minLastInputSecs = useSelector((state) => state.settings.minLastInputSecs)
   const shouldTrack = useSelector((state) => state.tracking.shouldTrack)
+  const extensionEnabled = useSelector((state) => state.settings.extensionEnabled)
+  const currentTab = useSelector((state) => state.tracking.currentTab)
   const shouldRestartTracking = useSelector((state) => state.tracking.shouldRestartTracking)
+  const browserProcesses = useSelector((state) => state.settings.browserProcesses)
+  const sitesExclusions = useSelector((state) => state.settings.sitesExclusions)
 
   const dispatch = useDispatch()
 
@@ -59,17 +65,19 @@ const useTracking = (isMaster = false) => {
       (app) => app.name.toLowerCase().trim() === activeApp.toLowerCase().trim()
     )
     if (!trackedApp) return dispatch(stopTrackingAll())
-    if (Date.now() - lastInputTime > 1000 * minLastInputSecs) {
-      if (lastInputTime < lastTrackTime) {
-        dispatch(
-          updateTrackingDataAfterInactivity({
-            trackedAppName: trackedApp.name,
-            lastInputTime: lastInputTime,
-            lastTrackTime: lastTrackTime
-          })
-        )
-        dispatch(setLastTrackTime(Date.now()))
-      }
+    if (
+      (Date.now() - lastInputTime > 1000 * minLastInputSecs && lastInputTime < lastTrackTime) ||
+      (browserProcesses.find((browser) => trackedApp.name.includes(browser)) &&
+        sitesExclusions.find((site) => currentTab.includes(site)))
+    ) {
+      dispatch(
+        updateTrackingDataAfterInactivity({
+          trackedAppName: trackedApp.name,
+          lastInputTime: lastInputTime,
+          lastTrackTime: lastTrackTime
+        })
+      )
+      dispatch(setLastTrackTime(Date.now()))
       return
     }
     dispatch(setLastTrackTime(Date.now()))
@@ -78,9 +86,18 @@ const useTracking = (isMaster = false) => {
         trackedAppName: trackedApp.name
       })
     )
-  }, [isTracking, lastInputTime, lastTrackTime, minLastInputSecs, trackingData])
+  }, [
+    isTracking,
+    lastInputTime,
+    lastTrackTime,
+    minLastInputSecs,
+    trackingData,
+    currentTab,
+    browserProcesses,
+    sitesExclusions
+  ])
   useEffect(() => {
-    ; (async () => {
+    ;(async () => {
       if (!isMaster) return
       const settings = await ipcRenderer.invoke('load-settings')
       dispatch(setSettings(settings))
@@ -93,17 +110,17 @@ const useTracking = (isMaster = false) => {
 
   useEffect(() => {
     let shouldClear = false
-      ; (async () => {
-        if (!isTrackingRunning && isMaster) {
-          dispatch(setIsTrackingRunning(true))
-          while (shouldClear === false) {
-            dispatch(setShouldTrack(true))
-            await new Promise((resolve) => setTimeout(resolve, 1000))
-          }
-          dispatch(setIsTrackingRunning(false))
-          dispatch(setShouldRestartTracking(true))
+    ;(async () => {
+      if (!isTrackingRunning && isMaster) {
+        dispatch(setIsTrackingRunning(true))
+        while (shouldClear === false) {
+          dispatch(setShouldTrack(true))
+          await new Promise((resolve) => setTimeout(resolve, 1000))
         }
-      })()
+        dispatch(setIsTrackingRunning(false))
+        dispatch(setShouldRestartTracking(true))
+      }
+    })()
     return () => {
       shouldClear = true
     }
@@ -112,8 +129,6 @@ const useTracking = (isMaster = false) => {
   useEffect(() => {
     if (shouldTrack && isMaster) track()
   }, [shouldTrack])
-
-
 
   const loadData = useCallback(async () => {
     if (Object.keys(trackingData).length > 0 || isLoadingData) return
@@ -130,7 +145,6 @@ const useTracking = (isMaster = false) => {
     dispatch(setCompletedProcess(0))
     dispatch(setIsGettingProcessList(true))
     ipcRenderer.send('get-windows-with-icons')
-
   }, [processes, isGettingProcessList])
 
   const getProcessCount = useCallback(async () => {
@@ -141,6 +155,12 @@ const useTracking = (isMaster = false) => {
 
   useEffect(() => {
     if (!isMaster) return
+    ipcRenderer.on('current-tab', (event, hostname) => {
+      dispatch(setCurrentTab(hostname))
+    })
+    ipcRenderer.on('add-tab', (event, hostname) => {
+      dispatch(setSitesExclusions([...new Set([...sitesExclusions, hostname])]))
+    })
     ipcRenderer.on('window-closed', () => {
       dispatch(setIsTracking(false))
     })
@@ -163,6 +183,7 @@ const useTracking = (isMaster = false) => {
     ipcRenderer.on('mouse_event', () => {
       dispatch(setLastInputTime(Date.now()))
     })
+
     getProcessCount()
     loadData()
   }, [])

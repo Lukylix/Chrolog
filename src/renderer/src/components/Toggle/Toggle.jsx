@@ -3,7 +3,7 @@ import './toggle.css'
 
 export default function Toggle({ toggled = false, setIsToggled = () => {} }) {
   const handleToggle = useCallback(() => {
-    setIsToggled((toggled) => !toggled)
+    setIsToggled(!toggled)
   }, [])
 
   return (
