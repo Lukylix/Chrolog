@@ -12,6 +12,7 @@ import { setTrackedApps, setCurrentProject } from '../../stores/tracking.js'
 import HeaderTracking from '../../components/HeaderTracking/Headertracking.jsx'
 import { DataList } from '../../components/Datalist/Datalist.jsx'
 import ProjectBarCharts from '../../components/ProjectBarChart/ProjectBarChart.jsx'
+import DataListProcesses from '../../components/DatalistProcesses/DatalistProcesses.jsx'
 import { memo, useCallback, useEffect, useMemo, useState } from 'react'
 import { ReactComponent as RemoveIcon } from '../../assets/close.svg'
 import { ReactComponent as DeleteIcon } from '../../assets/delete.svg'
@@ -129,6 +130,7 @@ const ProjectLine = memo(({ lastInputTime, project, isTracking, name, trackingDa
 const ProjectSettings = memo(
   ({ currentProject, processes, setInputValue, inputValue, trackedApps }) => {
     const dispatch = useDispatch()
+    const { name } = useParams()
     return (
       <div className="project-settings project-settings-track">
         <input
@@ -137,29 +139,7 @@ const ProjectSettings = memo(
           placeholder="Project Name"
           value={currentProject}
         />
-
-        <DataList
-          data={processes}
-          dataKey="name"
-          placeholder="Select apps to track ..."
-          onChange={setInputValue}
-          setSelecteds={(selecteds) => dispatch(setTrackedApps(selecteds(trackedApps)))}
-          renderItem={(process, i, { onClick }) => {
-            return (
-              <div key={i}>
-                {process.icon && <img src={process.icon} alt={process.name} />}
-                <option
-                  onClick={() => onClick(process)}
-                  style={{
-                    display: process.name.includes(inputValue.toLowerCase()) ? 'block' : 'none'
-                  }}
-                >
-                  {process.name}
-                </option>
-              </div>
-            )
-          }}
-        />
+        <DataListProcesses inputValue={inputValue} setInputValue={setInputValue} />
         <button
           onClick={() => {
             if (!currentProject) return alert('Please enter a project name')
@@ -169,8 +149,9 @@ const ProjectSettings = memo(
                 appName: app.name,
                 projectName: name
               })
+              dispatch(addTrackedApp({ projectName: currentProject, app }))
             })
-            dispatch(addTrackedApp({ projectName: currentProject, app }))
+
             dispatch(setTrackedApps([]))
           }}
         >
@@ -181,7 +162,7 @@ const ProjectSettings = memo(
   }
 )
 
-const ProjectApps = memo(({ trackedApps, appsColorMap, apps }) => {
+const ProjectApps = memo(({ trackedApps, appsColorMap, apps, removeTrackedApp = () => {} }) => {
   return (
     <div className="project" style={{ gridTemplateColumns: '1fr auto' }}>
       <div className="d-inline gap-10">
@@ -193,6 +174,7 @@ const ProjectApps = memo(({ trackedApps, appsColorMap, apps }) => {
           >
             {app.name}
             <RemoveIcon
+              className="cross-icon"
               height="15px"
               width="15px"
               fill="#272727"
@@ -208,6 +190,7 @@ const ProjectApps = memo(({ trackedApps, appsColorMap, apps }) => {
           >
             {app.name}
             <RemoveIcon
+              className="cross-icon"
               height="15px"
               width="15px"
               fill="#272727"
@@ -429,6 +412,7 @@ export default function Project() {
                   trackedApps={trackedApps}
                   appsColorMap={appsColorMap}
                   apps={project?.apps}
+                  removeTrackedApp={removeTrackedApp}
                 />
               </div>
               <ProjectFilters

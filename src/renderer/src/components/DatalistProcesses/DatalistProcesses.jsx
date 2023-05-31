@@ -20,7 +20,7 @@ export default function DatalistProcesses({ inputValue, setInputValue }) {
 
   return (
     <div className="d-inline">
-      <div className="d-inline">
+      <div className="d-inline processes-datalist">
         {isGettingProcessList && (
           <div className="load-processes">
             <div

@@ -46,13 +46,19 @@
 
 .tracked-app-apps {
   border-radius: 5px;
-  padding: 5px;
+  padding: 5px 15px 5px 5px;
   color: #272727;
   margin-top: 10px;
 }
 
 .flex-end {
   margin-left: auto;
+}
+
+.cross-icon {
+  position: absolute;
+  right: 0px;
+  bottom: 50%;
 }
 
 .remove-icon:hover {

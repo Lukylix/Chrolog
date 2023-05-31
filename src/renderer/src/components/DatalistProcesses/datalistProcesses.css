@@ -12,7 +12,9 @@
   background-color: #1aa68a;
   border-radius: 5px;
 }
-
 .refresh-icon {
   margin-left: 5px;
+}
+.processes-datalist {
+  width: calc(100% - 24px - 5px);
 }
