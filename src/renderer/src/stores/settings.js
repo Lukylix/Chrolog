@@ -57,6 +57,9 @@ const settingsSlice = createSlice({
     setSitesExclusions: (state, action) => {
       state.sitesExclusions = action.payload
     },
+    addSitesExclusion: (state, action) => {
+      state.sitesExclusions = [...new Set([...state.sitesExclusions, action.payload])]
+    },
     setBrowserProcesses: (state, action) => {
       state.browserProcesses = action.payload
     }
@@ -73,7 +76,8 @@ export const {
   setIsFirstSettingsLoad,
   setExtensionEnabled,
   setSitesExclusions,
-  setBrowserProcesses
+  setBrowserProcesses,
+  addSitesExclusion
 } = settingsSlice.actions
 
 export default settingsSlice.reducer

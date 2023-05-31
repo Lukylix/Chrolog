@@ -183,10 +183,10 @@ function createWindow() {
           })
           req.on('end', () => {
             const parsedBody = JSON.parse(body)
-            console.log('add-tab', parsedBody?.domain)
             webContents.getAllWebContents().forEach((webContents) => {
               webContents.send('add-tab', parsedBody?.domain)
             })
+
             store.set('settings', {
               ...store.get('settings'),
               sitesExclusions: [

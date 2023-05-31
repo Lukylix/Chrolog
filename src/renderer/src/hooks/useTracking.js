@@ -24,7 +24,12 @@ import {
   setShouldRestartTracking,
   setCurrentTab
 } from '../stores/tracking.js'
-import { setIsFirstSettingsLoad, setSettings, setSitesExclusions } from '../stores/settings.js'
+import {
+  addSitesExclusion,
+  setIsFirstSettingsLoad,
+  setSettings,
+  setSitesExclusions
+} from '../stores/settings.js'
 import { setInitialLoad } from '../stores/initialLoad.js'
 
 const { ipcRenderer } = window.require('electron')
@@ -43,7 +48,6 @@ const useTracking = (isMaster = false) => {
   const lastTrackTime = useSelector((state) => state.tracking.lastTrackTime)
   const minLastInputSecs = useSelector((state) => state.settings.minLastInputSecs)
   const shouldTrack = useSelector((state) => state.tracking.shouldTrack)
-  const extensionEnabled = useSelector((state) => state.settings.extensionEnabled)
   const currentTab = useSelector((state) => state.tracking.currentTab)
   const shouldRestartTracking = useSelector((state) => state.tracking.shouldRestartTracking)
   const browserProcesses = useSelector((state) => state.settings.browserProcesses)
@@ -159,7 +163,7 @@ const useTracking = (isMaster = false) => {
       dispatch(setCurrentTab(hostname))
     })
     ipcRenderer.on('add-tab', (event, hostname) => {
-      dispatch(setSitesExclusions([...new Set([...sitesExclusions, hostname])]))
+      dispatch(addSitesExclusion(hostname))
     })
     ipcRenderer.on('window-closed', () => {
       dispatch(setIsTracking(false))
