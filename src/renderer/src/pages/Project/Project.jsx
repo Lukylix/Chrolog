@@ -91,7 +91,9 @@ const ProjectLine = memo(({ lastInputTime, project, isTracking, name, trackingDa
           {
             <span
               className={`${
-                (Date.now() - lastInputTime > 10000 && project.toggled) || !isTracking
+                (Date.now() - lastInputTime > 10000 && project.toggled) ||
+                !isTracking ||
+                !project.toggled
                   ? 'red-dot'
                   : 'green-dot'
               }`}
