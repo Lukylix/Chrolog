@@ -208,7 +208,7 @@ const trackingDataSlice = createSlice({
     },
     updateTrackingDataAfterInactivity: (state, action) => {
       const { minLogSecs } = action.payload.settings
-      const { trackedAppName } = action.payload.trackingData
+      const { trackedAppName, isBrowser, isExcluedSite } = action.payload.trackingData
       const matchingProjectsKeys = Object.keys(state).filter(
         (projectKey) =>
           state[projectKey].apps.find((app) => app.name === trackedAppName) &&
@@ -222,7 +222,7 @@ const trackingDataSlice = createSlice({
 
         for (const log of project?.trackingLogs || []) {
           if (log.name === trackedAppName && !log.endDate) {
-            if (elapsedTime > minLogSecs * 1000)
+            if (elapsedTime > minLogSecs * 1000 || (isBrowser && isExcluedSite))
               ipcRenderer.send('create-tracking-log', {
                 projectName,
                 trackingLog: {

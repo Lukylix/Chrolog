@@ -67,29 +67,38 @@ const useTracking = (isMaster = false) => {
     const trackedApp = allProjectTrackedApps.find(
       (app) => app.name.toLowerCase().trim() === activeApp.toLowerCase().trim()
     )
-    if (!trackedApp) return dispatch(stopTrackingAll())
-    if (
-      (Date.now() - lastInputTime > 1000 * minLastInputSecs ||
-        (browserProcesses.find((browser) => trackedApp.name.includes(browser)) &&
-          sitesExclusions.find((site) => currentTab.includes(site)))) &&
-      lastInputTime < lastTrackTime
-    ) {
+    console.log('Last input time', lastInputTime)
+    console.log('Last track time', lastTrackTime)
+    if (!trackedApp?.name || Date.now() - lastInputTime > minLastInputSecs * 1000)
+      return dispatch(stopTrackingAll())
+    const isBrowser = browserProcesses.find((browser) => trackedApp.name.includes(browser))
+    console.log('isBrowser', isBrowser)
+    console.log('currentTab', currentTab)
+    console.log('trackedapp', trackedApp)
+    const isExcluedSite = sitesExclusions.find((site) => currentTab.includes(site))
+    console.log('isExcluedSite', isExcluedSite)
+
+    if (isBrowser && isExcluedSite) {
+      console.log('excluded site')
       dispatch(
         updateTrackingDataAfterInactivity({
           trackedAppName: trackedApp.name,
           lastInputTime: lastInputTime,
-          lastTrackTime: lastTrackTime
+          lastTrackTime: lastTrackTime,
+          isBrowser: isBrowser,
+          isExcluedSite: isExcluedSite
         })
       )
       dispatch(setLastTrackTime(Date.now()))
       return
     }
-    dispatch(setLastTrackTime(Date.now()))
+    console.log('tracking', trackedApp.name)
     dispatch(
       updateTrackingData({
         trackedAppName: trackedApp.name
       })
     )
+    dispatch(setLastTrackTime(Date.now()))
   }, [
     isTracking,
     lastInputTime,
