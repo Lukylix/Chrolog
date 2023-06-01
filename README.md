@@ -5,8 +5,8 @@ With the Chrome extension [Chrolog - TabTracker](https://github.com/Lukylix/Chro
 
 Visit the release page to download binary files.
 
-![Project Details](./ProjectEdit.png)
-
+<img src="./ProjectEdit.png" alt="Project Details page" style="width: 500px;">
+<img src="./Home.png" alt="Home page" style="width: 500px;">
 # How to Run on Linux
 
 To run Chrolog on Linux, launch it from a terminal  
