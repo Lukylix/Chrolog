@@ -94,7 +94,7 @@ function createWindow() {
             }
           ])
 
-          appIcon.on('double-click', function (event) {
+          appIcon.on('click', function (event) {
             mainWindow.show()
           })
           appIcon.setToolTip('Chrolog')
