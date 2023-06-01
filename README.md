@@ -5,6 +5,8 @@ With the Chrome extension [Chrolog - TabTracker](https://github.com/Lukylix/Chro
 
 Visit the release page to download binary files.
 
+# Screenshots
+
 <img src="./ProjectEdit.png" alt="Project Details page" style="width: 300px;">
 <img src="./Home.png" alt="Home page" style="width: 300px;">
 
