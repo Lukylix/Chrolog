@@ -131,7 +131,13 @@ export async function createTrackingLogListener(event, trackingData) {
   const { projectName, trackingLog } = trackingData
   const { name, elapsedTime, startDate, endDate } = trackingLog
   const insertTrackingSql = `INSERT INTO tracking_data (projectName, appName, elapsedTime, startDate, endDate) VALUES (?, ?, ?, ?, ?)`
-  const trackingLogRes = await run(insertTrackingSql, [projectName, name, elapsedTime, startDate, endDate])
+  const trackingLogRes = await run(insertTrackingSql, [
+    projectName,
+    name,
+    elapsedTime,
+    startDate,
+    endDate
+  ])
   return trackingLogRes.lastID
 }
 
@@ -145,7 +151,7 @@ export async function updateTrackingLogListener(event, trackingLog) {
 // Delete a tracking log
 export async function deleteTrackingLogListener(event, data) {
   const { name, projectName, endDate, startDate } = data
-  const deleteTrackingSql = `DELETE FROM tracking_data WHERE projectName = ? AND name = ? AND endDate = ? AND startDate = ?`
+  const deleteTrackingSql = `DELETE FROM tracking_data WHERE projectName = ? AND appName = ? AND endDate = ? AND startDate = ?`
   return await run(deleteTrackingSql, [projectName, name, endDate, startDate])
 }
 
@@ -228,8 +234,9 @@ export const loadDataListener = (event, filters = []) => {
             'CREATE TABLE if not exists tracking_data (id INTEGER PRIMARY KEY AUTOINCREMENT, projectName TEXT, appName TEXT, elapsedTime INTEGER, startDate INTEGER, endDate INTEGER)'
           )
 
-          const selectTrackingSql = `SELECT * FROM tracking_data ${filters.length ? 'WHERE ' : ''
-            }${filters.map((filter) => `elapsedTime ${filter.operator} ?`).join(' AND ')}`
+          const selectTrackingSql = `SELECT * FROM tracking_data ${
+            filters.length ? 'WHERE ' : ''
+          }${filters.map((filter) => `elapsedTime ${filter.operator} ?`).join(' AND ')}`
           const filterValues = filters.map((filter) => (parseInt(filter.value) || 0) * 1000)
           db.all(selectTrackingSql, filterValues, (err, trackingRows) => {
             if (err) return reject(err)

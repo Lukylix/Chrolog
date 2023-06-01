@@ -76,7 +76,7 @@ const TrackedApp = memo(({ app, appsColorMap, removeTrackingLog }) => {
           height="20px"
           width="20px"
           fill="white"
-          onClick={() => removeTrackingLog(app.id)}
+          onClick={() => removeTrackingLog(app)}
         />
       </div>
     </div>
@@ -288,14 +288,23 @@ export default function Project() {
     ipcRenderer.send('delete-tracked-app', { appName, projectName: name })
   }, [])
 
-  const removeTrackingLogCallback = useCallback((trackingLog) => {
-    dispatch(removeTrackingLog({ ...trackingLog, projectName: name }))
-    setCurrentProjectTrackingData((trackingData) => ({
-      ...trackingData,
-      trackingLogs: trackingData?.trackingLogs.filter((log) => log.id !== id)
-    }))
-    ipcRenderer.send('delete-tracking-log', { ...trackingLog, projectName: name })
-  }, [])
+  const removeTrackingLogCallback = useCallback(
+    (trackingLog) => {
+      console.log('trackingLog', trackingLog)
+      dispatch(removeTrackingLog({ ...trackingLog, projectName: name }))
+      setCurrentProjectTrackingData((prev) => ({
+        ...prev,
+        trackingLogs: prev.trackingLogs.filter(
+          (log) =>
+            log.name !== trackingLog.name ||
+            log.startDate !== trackingLog.startDate ||
+            log.endDate !== trackingLog.endDate
+        )
+      }))
+      ipcRenderer.send('delete-tracking-log', { ...trackingLog, projectName: name })
+    },
+    [trackingData]
+  )
 
   const removeFilter = useCallback((index) => {
     setFilters(filters.filter((_, i) => i !== index))

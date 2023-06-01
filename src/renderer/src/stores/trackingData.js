@@ -41,7 +41,7 @@ const trackingDataSlice = createSlice({
     removeTrackingLog: (state, action) => {
       const { name, projectName, endDate, startDate } = action.payload
       const trackingLogs = state?.[projectName]?.trackingLogs.filter(
-        (log) => log.name !== name && log.startDate !== startDate && log.endDate !== endDate
+        (log) => log.name !== name || log.startDate !== startDate || log.endDate !== endDate
       )
       return {
         ...state,
