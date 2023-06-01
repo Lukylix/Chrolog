@@ -167,11 +167,11 @@ const ProjectSettings = memo(
 const ProjectApps = memo(({ trackedApps, appsColorMap, apps, removeTrackedApp = () => {} }) => {
   return (
     <div className="project" style={{ gridTemplateColumns: '1fr auto' }}>
-      <div className="d-inline gap-10">
+      <div className="d-inline inline-gap-10">
         {apps?.map((app, i) => (
           <span
             className="tracked-app-apps"
-            style={{ backgroundColor: appsColorMap[app.name.toLowerCase()] }}
+            style={{ backgroundColor: appsColorMap[app.name.toLowerCase()], width: 'max-content' }}
             key={i}
           >
             {app.name}
@@ -187,7 +187,7 @@ const ProjectApps = memo(({ trackedApps, appsColorMap, apps, removeTrackedApp = 
         {trackedApps?.map((app, i) => (
           <span
             className="tracked-app-apps"
-            style={{ backgroundColor: appsColorMap[app.name.toLowerCase()] }}
+            style={{ backgroundColor: appsColorMap[app.name.toLowerCase()], width: 'max-content' }}
             key={i}
           >
             {app.name}
