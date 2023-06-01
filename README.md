@@ -1,22 +1,30 @@
-# Chrolog - A automated time tracking tool
+# Chrolog - Your Open-Source Time Tracking Tool
 
-This monitoring software recognizes actions through keyboard strokes and mouse movements, subsequently recording the time associated with each project.
+Chrolog is a time tracking software. It tracks time by recognizing keyboard and mouse actions, and records how long you spend on each project.  
+With the Chrome extension [Chrolog - TabTracker](https://github.com/Lukylix/Chrolog-TabTracker) (currently under review on the Chrome store), you can choose which websites to exclude from tracking.
 
-Check the release page for binary files.
+Visit the release page to download binary files.
 
 ![Project Details](./ProjectEdit.png)
 
-# Running on linux
+# How to Run on Linux
 
-Chrolog must be run from a terminal in order for sudo exec to run
+To run Chrolog on Linux, launch it from a terminal  
+(Without launching from a terminal, the necessary sudo prompt will not function correctly).
 
-## Recommended IDE Setup
+# Development Guidelines
 
-- [VSCode](https://code.visualstudio.com/) + [ESLint](https://marketplace.visualstudio.com/items?itemName=dbaeumer.vscode-eslint) + [Prettier](https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode)
+## Ideal IDE Setup
 
-## Project Setup
+- [VSCode](https://code.visualstudio.com/)
+- [ESLint](https://marketplace.visualstudio.com/items?itemName=dbaeumer.vscode-eslint)
+- [Prettier](https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode)
+
+## How to Set Up the Project
 
 ### Development
+
+Type these commands in your terminal:
 
 ```bash
 npm install
@@ -25,6 +33,14 @@ npm run dev
 
 ### Build
 
+To build the project for Windows or Linux, type:
+
 ```bash
-$ npm run build:win
+npm run build:win
+```
+
+or
+
+```bash
+npm run build:linux
 ```

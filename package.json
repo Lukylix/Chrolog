@@ -3,8 +3,8 @@
   "version": "1.4.0",
   "description": "A automated time tracking tool",
   "main": "./out/main/index.js",
-  "author": "example.com",
-  "homepage": "https://www.electronjs.org",
+  "author": "lukylix",
+  "homepage": "https://github.com/Lukylix/Chrolog",
   "scripts": {
     "format": "prettier --write .",
     "lint": "eslint . --ext .js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix",
