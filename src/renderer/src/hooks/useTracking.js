@@ -69,9 +69,10 @@ const useTracking = (isMaster = false) => {
     )
     if (!trackedApp) return dispatch(stopTrackingAll())
     if (
-      (Date.now() - lastInputTime > 1000 * minLastInputSecs && lastInputTime < lastTrackTime) ||
-      (browserProcesses.find((browser) => trackedApp.name.includes(browser)) &&
-        sitesExclusions.find((site) => currentTab.includes(site)))
+      (Date.now() - lastInputTime > 1000 * minLastInputSecs ||
+        (browserProcesses.find((browser) => trackedApp.name.includes(browser)) &&
+          sitesExclusions.find((site) => currentTab.includes(site)))) &&
+      lastInputTime < lastTrackTime
     ) {
       dispatch(
         updateTrackingDataAfterInactivity({

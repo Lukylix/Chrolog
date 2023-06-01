@@ -25,6 +25,11 @@ const trackingDataSlice = createSlice({
     },
     toggleProject: (state, action) => {
       const { projectName } = action.payload
+      ipcRenderer.send('update-project-properties', {
+        ...JSON.parse(JSON.stringify(state?.[projectName])),
+        projectName,
+        toggled: !state?.[projectName]?.toggled || false
+      })
       return {
         ...state,
         [projectName]: {

@@ -8,7 +8,7 @@ export const DataList = memo(
     placeholder = 'Select',
     data = [],
     dataKey = 'name',
-    setSelecteds = () => {},
+    addSelected = () => {},
     selectedCallBack = () => {},
     renderItem = undefined,
     onChange = () => {}
@@ -21,14 +21,7 @@ export const DataList = memo(
       datalistRef.current.style.display = 'none'
     }, [])
 
-    const addSelected = useCallback((value) => {
-      console.log('Add Seelected', value)
-      setSelecteds((selecteds) => {
-        return [...new Set([value, ...selecteds])]
-      })
-    }, [])
     const onClick = useCallback((value) => {
-      console.log('On Click')
       addSelected(value)
       selectedCallBack()
     }, [])

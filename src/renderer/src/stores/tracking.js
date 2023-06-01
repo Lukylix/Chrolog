@@ -76,6 +76,13 @@ const trackingSlice = createSlice({
     },
     setCurrentTab: (state, action) => {
       state.currentTab = action.payload
+    },
+    addTrackedApp: (state, action) => {
+      const { name } = action.payload
+      const index = state.trackedApps.findIndex((app) => app.name === name)
+      if (index === -1) {
+        state.trackedApps.push(action.payload)
+      }
     }
   }
 })
@@ -96,7 +103,8 @@ export const {
   setIsTrackingRunning,
   setShouldRestartTracking,
   setCurrentPeriod,
-  setCurrentTab
+  setCurrentTab,
+  addTrackedApp
 } = trackingSlice.actions
 
 export default trackingSlice.reducer

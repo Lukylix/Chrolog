@@ -4,6 +4,7 @@ import { ReactComponent as RefreshIcon } from '../../assets/refresh.svg'
 import useTracking from '../../hooks/useTracking'
 import { DataList } from '../Datalist/Datalist'
 import './datalistProcesses.css'
+import { addTrackedApp } from '../../stores/tracking'
 
 export default function DatalistProcesses({ inputValue, setInputValue }) {
   const trackedApps = useSelector((state) => state.tracking.trackedApps)
@@ -36,7 +37,7 @@ export default function DatalistProcesses({ inputValue, setInputValue }) {
           data={processes}
           dataKey="name"
           placeholder="Select apps to track ..."
-          setSelecteds={(selecteds) => dispatch(setTrackedApps(selecteds(trackedApps)))}
+          addSelected={(selected) => dispatch(addTrackedApp(selected))}
           onChange={setInputValue}
           renderItem={(process, i, { onClick }) => {
             return (

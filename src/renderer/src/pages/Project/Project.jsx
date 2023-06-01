@@ -292,7 +292,7 @@ export default function Project() {
     dispatch(removeTrackingLog({ ...trackingLog, projectName: name }))
     setCurrentProjectTrackingData((trackingData) => ({
       ...trackingData,
-      trackingLogs: trackingData.trackingLogs.filter((log) => log.id !== id)
+      trackingLogs: trackingData?.trackingLogs.filter((log) => log.id !== id)
     }))
     ipcRenderer.send('delete-tracking-log', { ...trackingLog, projectName: name })
   }, [])
@@ -309,7 +309,7 @@ export default function Project() {
   }, [filters])
 
   const uniqueApps = useMemo(() => {
-    return [...new Set(project?.trackingLogs.map((log) => log.name.toLowerCase()))]
+    return [...new Set(project?.trackingLogs?.map((log) => log.name.toLowerCase()))]
   }, [project?.trackingLogs])
 
   const appsColorMap = useMemo(() => {
