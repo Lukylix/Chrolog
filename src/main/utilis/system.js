@@ -52,10 +52,12 @@ if (process.platform === 'win32') {
 }
 
 let lastMouseEventTime = Date.now()
+let lastKeyboardEventTime = Date.now()
 
 const hookInputsWin32 = async () => {
   const instance = new Chrolog()
   instance.setKeyboardCallback(() => {
+    if (lastKeyboardEventTime + 500 > Date.now()) return
     webContents.getAllWebContents().forEach((webContent) => {
       webContent.send('keyboard_event')
     })
