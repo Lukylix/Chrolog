@@ -96,6 +96,7 @@ function createWindow() {
 
           appIcon.on('click', function (event) {
             mainWindow.show()
+            tray.destroy()
           })
           appIcon.setToolTip('Chrolog')
           appIcon.setContextMenu(contextMenu)
