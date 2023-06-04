@@ -57,7 +57,6 @@ function createWindow() {
   })
 
   function createTray() {
-    if (tray) return
     const paths = [
       '../../build/icon256.ico',
       '../build/icon256.ico',
