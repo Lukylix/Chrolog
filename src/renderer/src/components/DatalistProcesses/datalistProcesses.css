@@ -5,6 +5,7 @@
   width: 100%;
   border-radius: 5px;
   background-color: #202020;
+  overflow: hidden;
 }
 
 .load-processes-bar {
