@@ -148,7 +148,6 @@ const trackingDataSlice = createSlice({
     },
     updateTrackingData: (state, action) => {
       const { trackedAppName } = action.payload
-      const { lastInputTime, lastTrackTime, minLastInputSecs } = action.payload.settings
       const matchingProjectsKeys = Object.keys(state).filter(
         (projectKey) =>
           state[projectKey].apps.find((app) => app.name === trackedAppName) &&
@@ -157,7 +156,6 @@ const trackingDataSlice = createSlice({
 
       for (const projectName of matchingProjectsKeys) {
         const project = state[projectName]
-        const elapsedTime = state[projectName]?.elapsedTime || 0
         const trackedApp = state[projectName]?.trackingLogs?.find(
           (app) => app?.name === trackedAppName && app?.startDate && !app?.endDate
         )
@@ -188,22 +186,17 @@ const trackingDataSlice = createSlice({
             elapsedTime: 0
           })
         }
-        if (lastTrackTime - lastInputTime > 1000 * minLastInputSecs)
-          return (state[projectName] = {
-            ...project,
-            elapsedTime: trackingLogs
-              .map((log) => log.elapsedTime)
-              .reduce((acc, curr) => acc + curr, 0),
-            trackingLogs,
-            startDate: state[projectName].startDate || Date.now()
-          })
+      }
 
-        state[projectName] = {
-          ...project,
-          elapsedTime: elapsedTime + 1000,
-          trackingLogs,
-          startDate: state[projectName].startDate || Date.now()
-        }
+      state[projectName] = {
+        ...project,
+        elapsedTime: trackingLogs.reduce(
+          (acc, curr) =>
+            curr.elapsedTime > 0 ? acc + curr.elapsedTime : Date.now() - curr.startDate,
+          0
+        ),
+        trackingLogs,
+        startDate: state[projectName].startDate || Date.now()
       }
     },
     updateTrackingDataAfterInactivity: (state, action) => {

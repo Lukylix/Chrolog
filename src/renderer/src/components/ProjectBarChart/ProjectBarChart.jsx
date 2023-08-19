@@ -40,10 +40,7 @@ const startDay = new Date(new Date().setDate(currentDate.getDate() - currentDay)
 const endDay = new Date(new Date().setDate(currentDate.getDate() - currentDay + 6)) // End day (Sunday)
 
 const ProjectBarCharts = memo(({ appsColorMap, trackingLogs }) => {
-  const { name } = useParams()
   const dispatch = useDispatch()
-  const trackingData = useSelector((state) => state.trackingData)
-  const project = trackingData[name]
   const [period, setPeriod] = useState('week')
 
   const currentPeriod = useSelector((state) => state.tracking.currentPeriod)
@@ -257,7 +254,8 @@ const ProjectBarCharts = memo(({ appsColorMap, trackingLogs }) => {
           height={300}
           data={dataChartPositive}
           margin={{
-            top: 20
+            top: 20,
+            left: 10
           }}
         >
           <XAxis dataKey="name" stroke="white" />

@@ -191,3 +191,7 @@ details summary {
 details summary::-webkit-details-marker {
   display: none;
 }
+
+.no-data {
+  margin: 10px 0;
+}

@@ -253,6 +253,13 @@ export const loadDataListener = (event, filters = []) => {
               }
             })
 
+            for (const projectName of Object.keys(trackingData)) {
+              trackingData[projectName].elapsedTime = 0
+              for (const trackingLog of trackingData[projectName].trackingLogs) {
+                trackingData[projectName].elapsedTime += trackingLog.elapsedTime
+              }
+            }
+
             resolve(trackingData)
           })
         })

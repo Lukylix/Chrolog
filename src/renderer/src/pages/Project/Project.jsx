@@ -283,6 +283,25 @@ export default function Project() {
   ])
   const [currentProjectTrackingData, setCurrentProjectTrackingData] = useState(project)
 
+  useEffect(() => {
+    let prevEndDate = 0
+    let elapsedTime = 0
+    console.log('Numbers of logs', currentProjectTrackingData.trackingLogs.length)
+    for (const trackingLog of currentProjectTrackingData.trackingLogs) {
+      if (trackingLog.endDate - trackingLog.startDate !== trackingLog.elapsedTime)
+        console.log('Error elapsed time mismatch start and end dates', trackingLog)
+      elapsedTime += trackingLog.elapsedTime
+      if (trackingLog.startDate < prevEndDate) console.warn('Error  imposibles dates!', trackingLog)
+    }
+    if (currentProjectTrackingData.elapsedTime !== elapsedTime)
+      console.log(
+        'Error missmatch total elapsed times. \nCalculated : %s \nCaved : %s \nDifference : %s',
+        convertMs(elapsedTime),
+        convertMs(currentProjectTrackingData.elapsedTime),
+        convertMs(currentProjectTrackingData.elapsedTime - elapsedTime)
+      )
+  }, [currentProjectTrackingData])
+
   const dispatch = useDispatch()
 
   const removeTrackedApp = useCallback((appName) => {
@@ -466,6 +485,11 @@ export default function Project() {
                       removeTrackingLog={removeTrackingLogCallback}
                     />
                   ))}
+                  {projectAppsSortedFiltered.length === 0 && (
+                    <p className="no-data">
+                      No data to display. Please select another period using the graph controls.
+                    </p>
+                  )}
                 </details>
               </div>
             </div>

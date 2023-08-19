@@ -23,7 +23,6 @@ const settingsSlice = createSlice({
         browserProcesses,
         sitesExclusions
       } = action.payload
-      console.log(action.payload)
       if (minLogSecs) state.minLogSecs = minLogSecs
       if (minLastInputSecs) state.minLastInputSecs = minLastInputSecs
       if (startTrackingAtLaunch) state.startTrackingAtLaunch = startTrackingAtLaunch
