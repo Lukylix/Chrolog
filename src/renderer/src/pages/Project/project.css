@@ -28,7 +28,7 @@
 }
 
 .project-settings-track {
-  grid-template-columns: 1fr 1fr auto;
+  grid-template-columns: 1fr auto;
 }
 
 .tracked-app {
@@ -194,4 +194,16 @@ details summary::-webkit-details-marker {
 
 .no-data {
   margin: 10px 0;
+}
+
+.pagination {
+  height: 40px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 25px;
+}
+
+.pagination svg {
+  height: 100%;
 }

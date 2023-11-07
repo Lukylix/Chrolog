@@ -6,11 +6,11 @@
 
 .project-header {
   display: inline-grid;
-  grid-template-columns: auto 1fr 1fr auto;
+  grid-template-columns: auto 1fr 2fr;
   gap: 10px;
   align-items: center;
   justify-content: center;
-  width: max-content;
+  width: 100%;
 }
 .project-header > * {
   justify-self: center;
@@ -56,10 +56,21 @@ section.header {
 }
 .project {
   display: grid;
-  grid-template-columns: 1fr auto auto;
+  grid-template-columns: 1fr auto;
   gap: 20px;
 }
 
 .project > * {
   align-self: center;
+}
+
+.app-list {
+  margin-top: 10px;
+  display: inline-flex;
+  gap: 10px;
+}
+.app-list > * {
+  border-radius: 5px;
+  border: solid 1px #ccc;
+  padding: 3px;
 }

@@ -14,12 +14,10 @@ const { ipcRenderer } = window.require('electron')
 
 export default function HeaderTracking() {
   const isTracking = useSelector((state) => state.tracking.isTracking)
-
   const dispatch = useDispatch()
   const handleTrack = () => dispatch(setIsTracking(true))
   const handleStopTrack = useCallback(() => {
     dispatch(setIsTracking(false))
-    dispatch(stopTrackingAll())
   }, [])
   const location = useLocation()
   const path = location.pathname
@@ -55,9 +53,9 @@ export default function HeaderTracking() {
         </div>
       </div>
       {isTracking ? (
-        <PowerIcon fill="#FF6347" height="45px" onClick={handleStopTrack} />
+        <PowerIcon fill="#1AA68A" height="45px" onClick={handleStopTrack} />
       ) : (
-        <PowerIcon fill="#1AA68A" height="45px" onClick={handleTrack} />
+        <PowerIcon fill="#FF6347" height="45px" onClick={handleTrack} />
       )}
     </div>
   )

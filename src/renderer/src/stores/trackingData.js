@@ -1,4 +1,4 @@
-import { createSlice } from '@reduxjs/toolkit'
+import { createSlice, current } from '@reduxjs/toolkit'
 
 const { ipcRenderer } = window.require('electron')
 
@@ -7,16 +7,7 @@ const trackingDataSlice = createSlice({
   initialState: {},
   reducers: {
     saveTrackingData: (state, action) => {
-      Object.keys(action.payload).map((projectName) => {
-        action.payload[projectName] = {
-          ...action.payload[projectName],
-          elapsedTime:
-            action.payload[projectName]?.trackingLogs
-              ?.map((log) => log.elapsedTime)
-              .reduce((acc, curr) => acc + curr, 0) || 0
-        }
-      })
-      return { ...state, ...action.payload }
+      return action.payload
     },
     createProject: (state, action) => {
       const { projectName, projectData } = action.payload
@@ -26,15 +17,14 @@ const trackingDataSlice = createSlice({
     toggleProject: (state, action) => {
       const { projectName } = action.payload
       ipcRenderer.send('update-project-properties', {
-        ...JSON.parse(JSON.stringify(state?.[projectName])),
         projectName,
-        toggled: !state?.[projectName]?.toggled || false
+        toggled: !!!state?.[projectName]?.toggled || false
       })
       return {
         ...state,
         [projectName]: {
           ...state[projectName],
-          toggled: !state?.[projectName]?.toggled || false
+          toggled: !!!state?.[projectName]?.toggled || false
         }
       }
     },
@@ -93,61 +83,58 @@ const trackingDataSlice = createSlice({
       }
     },
     stopTrackingAll: (state, action) => {
-      const { minLogSecs } = action.payload.settings
+      const { minLogSecs, isInactivity, minLastInputSecs } = action.payload.settings
       let trackingData = Object.keys(state).reduce((acc, projectName) => {
         let trackingLogs = []
+        let logAsEnded = false
         for (let log of state[projectName]?.trackingLogs) {
-          if (!log.endDate) {
-            if (Date.now() - log.startDate > minLogSecs * 1000) {
-              ipcRenderer.send('create-tracking-log', {
-                projectName,
-                trackingLog: {
-                  ...log,
-                  elapsedTime: Date.now() - log.startDate,
-                  endDate: Date.now()
-                }
-              })
-              log = {
-                ...log,
-                elapsedTime: Date.now() - log.startDate,
-                endDate: Date.now(),
-                toKeep: true
-              }
-            } else {
-              log = {
-                ...log,
-                toKeep: false
-              }
-            }
-            log = { ...log, toKeep: true }
+          const endDate = isInactivity ? Date.now() - minLastInputSecs * 1000 : Date.now()
+          const elapsedTime = endDate - log.startDate
+
+          if (log.endDate) {
+            trackingLogs.push(log)
+            continue
           }
-          log = { ...log, toKeep: true }
-          trackingLogs.push(log)
+
+          if (elapsedTime > minLogSecs * 1000) {
+            const trackingLog = {
+              ...log,
+              elapsedTime: elapsedTime,
+              endDate: endDate
+            }
+            trackingLogs.push(trackingLog)
+            ipcRenderer.send('create-tracking-log', {
+              projectName,
+              trackingLog
+            })
+            logAsEnded = true
+          }
         }
-
-        trackingLogs = trackingLogs.filter((log) => log.toKeep)
-
+        const elapsedTime = trackingLogs.reduce(
+          (acc, curr) =>
+            curr.endDate ? acc + curr.endDate - curr.startDate : acc + Date.now() - curr.startDate,
+          0
+        )
+        if (logAsEnded) {
+          ipcRenderer.send('update-project-properties', {
+            projectName,
+            elapsedTime
+          })
+        }
         return {
           ...acc,
           [projectName]: {
             ...state[projectName],
-            trackingLogs
+            trackingLogs,
+            elapsedTime
           }
         }
       }, {})
-      Object.keys(trackingData).map((projectName) => {
-        trackingData[projectName] = {
-          ...trackingData[projectName],
-          elapsedTime:
-            trackingData[projectName]?.trackingLogs
-              ?.map((log) => log.elapsedTime)
-              .reduce((acc, curr) => acc + curr, 0) || 0
-        }
-      })
       return trackingData
     },
     updateTrackingData: (state, action) => {
       const { trackedAppName } = action.payload
+      const { minLogSecs } = action.payload.settings
       const matchingProjectsKeys = Object.keys(state).filter(
         (projectKey) =>
           state[projectKey].apps.find((app) => app.name === trackedAppName) &&
@@ -156,111 +143,65 @@ const trackingDataSlice = createSlice({
 
       for (const projectName of matchingProjectsKeys) {
         const project = state[projectName]
-        const trackedApp = state[projectName]?.trackingLogs?.find(
-          (app) => app?.name === trackedAppName && app?.startDate && !app?.endDate
+        if (!project?.trackingLogs) project.trackingLogs = []
+
+        const currentTrackingLogIndex = project.trackingLogs.findIndex(
+          (log) => log?.name === trackedAppName && log?.startDate && !log.endDate
         )
-        let trackingLogs = (project?.trackingLogs || []).map((log) => {
-          if (log?.name === trackedAppName && !log.endDate && !log.startDate) {
-            return {
-              ...log,
-              startDate: trackedApp?.startDate || Date.now(),
-              elapsedTime: trackedApp?.elapsedTime + 1000
-            }
+        if (currentTrackingLogIndex >= 0) {
+          project.trackingLogs[currentTrackingLogIndex] = {
+            ...project?.trackingLogs[currentTrackingLogIndex],
+            elapsedTime: Date.now() - project?.trackingLogs[currentTrackingLogIndex]?.startDate
           }
-          return log
-        })
-        trackingLogs = trackingLogs.map((log) => {
-          if (log?.name !== trackedAppName && !log?.endDate && log?.startDate)
-            return {
-              ...log,
-              elapsedTime: Date.now() - log.startDate,
+        }
+        let trackingLogs = []
+        let logAsEnded = false
+        for (const logIndex in project.trackingLogs) {
+          const trackingLog = project.trackingLogs[logIndex]
+          if (!trackingLog.endDate && trackingLog.name !== trackedAppName) {
+            const elapsedTime = Date.now() - trackingLog.startDate
+            if (elapsedTime < minLogSecs * 1000) continue
+            const newTrackingLog = {
+              ...trackingLog,
+              elapsedTime,
               endDate: Date.now()
             }
-          return log
-        })
+            trackingLogs.push(newTrackingLog)
+            ipcRenderer.send('create-tracking-log', { projectName, trackingLog: newTrackingLog })
+            logAsEnded = true
+          } else {
+            trackingLogs.push(trackingLog)
+          }
+        }
 
-        if (!trackedApp) {
+        if (!currentTrackingLogIndex || currentTrackingLogIndex < 0) {
           trackingLogs.push({
             name: trackedAppName,
             startDate: Date.now(),
             elapsedTime: 0
           })
         }
-      }
 
-      state[projectName] = {
-        ...project,
-        elapsedTime: trackingLogs.reduce(
+        const elapsedTime = trackingLogs.reduce(
           (acc, curr) =>
-            curr.elapsedTime > 0 ? acc + curr.elapsedTime : Date.now() - curr.startDate,
+            curr.endDate ? acc + curr.endDate - curr.startDate : acc + Date.now() - curr.startDate,
           0
-        ),
-        trackingLogs,
-        startDate: state[projectName].startDate || Date.now()
-      }
-    },
-    updateTrackingDataAfterInactivity: (state, action) => {
-      const { minLogSecs } = action.payload.settings
-      const { trackedAppName, isBrowser, isExcluedSite } = action.payload.trackingData
-      const matchingProjectsKeys = Object.keys(state).filter(
-        (projectKey) =>
-          state[projectKey].apps.find((app) => app.name === trackedAppName) &&
-          !!state[projectKey].toggled
-      )
-
-      for (const projectName of matchingProjectsKeys) {
-        const project = state[projectName]
-        const elapsedTime = project?.elapsedTime || 0
-        let trackingLogs
-
-        for (const log of project?.trackingLogs || []) {
-          if (log.name === trackedAppName && !log.endDate) {
-            if (elapsedTime > minLogSecs * 1000 || (isBrowser && isExcluedSite))
-              ipcRenderer.send('create-tracking-log', {
-                projectName,
-                trackingLog: {
-                  ...log,
-                  elapsedTime: elapsedTime,
-                  toKeep: elapsedTime > minLogSecs * 1000,
-                  endDate: Date.now()
-                }
-              })
-
-            return {
-              ...log,
-              elapsedTime: elapsedTime,
-              toKeep: elapsedTime > minLogSecs * 1000,
-              endDate: Date.now()
-            }
-          } else if (!log.endDate) {
-            return {
-              ...log,
-              toKeep: false
-            }
-          }
-          return log
-        }
-        trackingLogs = trackingLogs
-          .filter((log) => !log.elapsedTime < 0 && log.toKeep)
-          .map((log) => {
-            delete log.toKeep
-            return log
+        )
+        if (logAsEnded) {
+          ipcRenderer.send('update-project-properties', {
+            projectName,
+            elapsedTime
           })
-        ipcRenderer.send('update-project-properties', {
-          ...project,
-          elapsedTime: trackingLogs
-            .map((log) => log.elapsedTime)
-            .reduce((acc, curr) => acc + curr, 0),
-          trackingLogs
-        })
+        }
+
         state[projectName] = {
           ...project,
-          elapsedTime: trackingLogs
-            .map((log) => log.elapsedTime)
-            .reduce((acc, curr) => acc + curr, 0),
-          trackingLogs
+          trackingLogs,
+          elapsedTime: elapsedTime,
+          startDate: project.startDate || Date.now()
         }
       }
+      return state
     }
   }
 })
@@ -270,7 +211,6 @@ export const {
   createProject,
   toggleProject,
   updateTrackingData,
-  updateTrackingDataAfterInactivity,
   stopTracking,
   stopTrackingAll,
   removeTrackedApp,

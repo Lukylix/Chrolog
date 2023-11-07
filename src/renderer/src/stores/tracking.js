@@ -10,7 +10,6 @@ const trackingSlice = createSlice({
   initialState: {
     isTracking: false,
     lastInputTime: Date.now(),
-    lastTrackTime: Date.now(),
     intervalId: null,
     trackedApps: [],
     currentProject: '',
@@ -34,9 +33,6 @@ const trackingSlice = createSlice({
     },
     setLastInputTime: (state, action) => {
       state.lastInputTime = action.payload
-    },
-    setLastTrackTime: (state, action) => {
-      state.lastTrackTime = action.payload
     },
     setIntervalId: (state, action) => {
       state.intervalId = action.payload
@@ -90,7 +86,6 @@ const trackingSlice = createSlice({
 export const {
   setIsTracking,
   setLastInputTime,
-  setLastTrackTime,
   setIntervalId,
   setTrackedApps,
   setCurrentProject,

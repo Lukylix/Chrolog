@@ -158,8 +158,35 @@ export async function deleteTrackingLogListener(event, data) {
 // Update project properties (except trackingLogs)
 export async function updateProjectPropertiesListener(event, projectData) {
   const { projectName, toggled, elapsedTime, startDate, endDate } = projectData
-  const updateProjectSql = `UPDATE project_data SET toggled = ?, elapsedTime = ?, startDate = ?, endDate = ? WHERE name = ?`
-  return await run(updateProjectSql, [toggled, elapsedTime, startDate, endDate, projectName])
+  if (!projectName) return console.error('No project name provided')
+  if (!toggled && toggled !== false && !elapsedTime && !startDate && !endDate)
+    return console.error('No data provided')
+
+  let updateProjectSql = `UPDATE project_data SET`
+  let updateProjectValues = []
+  if (toggled) {
+    updateProjectSql += ' toggled = ?,'
+    updateProjectValues.push(toggled)
+  } else if (toggled === false) {
+    updateProjectSql += ' toggled = ?,'
+    updateProjectValues.push(toggled)
+  }
+  if (elapsedTime) {
+    updateProjectSql += ' elapsedTime = ?,'
+    updateProjectValues.push(elapsedTime)
+  }
+  if (startDate) {
+    updateProjectSql += ' startDate = ?,'
+    updateProjectValues.push(startDate)
+  }
+  if (endDate) {
+    updateProjectSql += ' endDate = ?,'
+    updateProjectValues.push(endDate)
+  }
+  updateProjectSql = updateProjectSql.slice(0, -1)
+  updateProjectSql += ' WHERE name = ?'
+
+  return await run(updateProjectSql, [...updateProjectValues, projectName])
 }
 
 export async function deleteTrackedAppListener(event, appData) {
@@ -238,7 +265,7 @@ export const loadDataListener = (event, filters = []) => {
             filters.length ? 'WHERE ' : ''
           }${filters.map((filter) => `elapsedTime ${filter.operator} ?`).join(' AND ')}`
           const filterValues = filters.map((filter) => (parseInt(filter.value) || 0) * 1000)
-          db.all(selectTrackingSql, filterValues, (err, trackingRows) => {
+          db.all(selectTrackingSql, filterValues, async (err, trackingRows) => {
             if (err) return reject(err)
 
             trackingRows.forEach((trackingRow) => {
@@ -259,7 +286,6 @@ export const loadDataListener = (event, filters = []) => {
                 trackingData[projectName].elapsedTime += trackingLog.elapsedTime
               }
             }
-
             resolve(trackingData)
           })
         })

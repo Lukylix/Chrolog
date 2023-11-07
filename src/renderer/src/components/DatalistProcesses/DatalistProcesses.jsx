@@ -7,7 +7,6 @@ import './datalistProcesses.css'
 import { addTrackedApp } from '../../stores/tracking'
 
 export default function DatalistProcesses({ inputValue, setInputValue }) {
-  const trackedApps = useSelector((state) => state.tracking.trackedApps)
   const processCount = useSelector((state) => state.tracking.processCount)
   const currentProcess = useSelector((state) => state.tracking.currentProcess)
   const completedProcess = useSelector((state) => state.tracking.completedProcess)
@@ -20,7 +19,7 @@ export default function DatalistProcesses({ inputValue, setInputValue }) {
   const dispatch = useDispatch()
 
   return (
-    <div className="d-inline">
+    <div className="d-inline w-100">
       <div className="d-inline processes-datalist">
         {isGettingProcessList && (
           <div className="load-processes">

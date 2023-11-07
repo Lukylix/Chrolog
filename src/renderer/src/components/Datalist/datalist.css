@@ -25,7 +25,7 @@ input[list] {
 }
 
 input[list]:focus {
-  border-radius: 5px 5px 0 0;
+  border-radius: 5px;
   outline: none;
 }
 
@@ -44,6 +44,7 @@ input[list]::-webkit-calendar-picker-indicator {
 
 input[list] {
   background-color: #3282f7;
+  border-radius: 5px;
 }
 
 .datalist {
@@ -51,15 +52,17 @@ input[list] {
   color: white;
   position: absolute;
   max-width: 100%;
-  border-radius: 0px 0px 5px 5px;
+  border-radius: 5px;
   z-index: 10;
   max-height: 350px;
   min-height: 35px;
   overflow-y: scroll;
   border-radius: 5px;
   margin-top: 10px;
-  padding: 10px;
+  padding: 5px;
   box-sizing: border-box;
+  display: none;
+  overflow-x: hidden;
 }
 
 .datalist::-webkit-scrollbar-thumb {
@@ -78,17 +81,17 @@ input[list] {
 
 .datalist option {
   cursor: pointer;
-  padding: 5px 10px;
+  padding: 5px;
   width: 100%;
   text-overflow: ellipsis;
   white-space: nowrap;
-  overflow: hidden;
+  overflow-x: hidden;
 }
 
-.datalist {
-  display: none;
+.datalist > * {
+  width: 100%;
+  overflow-x: hidden;
 }
-
 .tags .tag {
   display: inline-block;
   height: 50px;
@@ -106,4 +109,10 @@ input[list] {
   transform: translateY(-50%);
   font-size: 25px;
   cursor: pointer;
+}
+.datalist.datalist-item {
+  display: none;
+}
+.datalist-item.active {
+  display: block;
 }

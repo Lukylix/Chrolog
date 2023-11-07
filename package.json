@@ -27,6 +27,7 @@
     "@electron/remote": "^2.0.9",
     "@lwahonen/ffi-napi": "^4.0.12",
     "@lwahonen/ref-napi": "^4.0.8",
+    "@preact/signals-react": "^1.3.6",
     "@reduxjs/toolkit": "^1.9.5",
     "chrolog-iohook": "^1.3.7",
     "core-js": "^3.30.2",

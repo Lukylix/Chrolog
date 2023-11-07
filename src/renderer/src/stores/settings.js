@@ -9,7 +9,7 @@ const settingsSlice = createSlice({
     startAtLaunch: false,
     isFirstSettingsLoad: true,
     extensionEnabled: false,
-    browserProcesses: ['chrome', 'brave', 'operagx', 'msedge'],
+    browserProcesses: ['chrome', 'brave', 'operagx', 'msedge', 'chromium', 'opera', 'vivaldi'],
     sitesExclusions: []
   },
   reducers: {

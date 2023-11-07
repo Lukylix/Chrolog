@@ -18,22 +18,20 @@ import { ReactComponent as RemoveIcon } from '../../assets/close.svg'
 import { ReactComponent as DeleteIcon } from '../../assets/delete.svg'
 import { ReactComponent as ChevronDown } from '../../assets/chevron_down.svg'
 import { ReactComponent as PowerIcon } from '../../assets/power.svg'
+import { ReactComponent as ChevronRight } from '../../assets/chevron_right.svg'
+import { ReactComponent as ChevronLeft } from '../../assets/chevron_left.svg'
 import Select from 'react-select'
 
 import './project.css'
 import Loader from '../../components/Loader/Loader.jsx'
 const { ipcRenderer } = window.require('electron')
 
-const convertMs = (ms) => {
-  isNaN(ms) && (ms = 0)
-  const seconds = Math.floor(ms / 1000)
-  const hours = Math.floor(seconds / 3600)
-  const minutes = Math.floor((seconds % 3600) / 60)
-  const remainingSeconds = seconds % 60
-  if (!hours && !minutes) return `${remainingSeconds}s`
-  if (!hours) return `${minutes}min ${remainingSeconds}s`
-  if (!minutes) return `${hours}h ${remainingSeconds}s`
-  return `${hours}h ${minutes}min ${remainingSeconds}s`
+const prettyTime = (ms) => {
+  const s = Math.floor(ms / 1000)
+  const hours = Math.floor(s / 3600)
+  const minutes = Math.floor((s - hours * 3600) / 60)
+  const seconds = parseInt(s - hours * 3600 - minutes * 60)
+  return `${hours ? hours + 'h' : ''} ${minutes ? minutes + 'm' : ''} ${seconds || 0 + 's'}`
 }
 const convertDate = (date) => {
   let d
@@ -41,7 +39,7 @@ const convertDate = (date) => {
   else if (!date) return
   else d = new Date(date)
 
-  return `${d.getDate()}/${d.getMonth() + 1} ${d.getHours()}:${d.getMinutes()}`
+  return `${d.getDate()}/${d.getMonth() + 1} ${d.getHours()}h${d.getMinutes()}`
 }
 
 let pastelColors = [
@@ -67,10 +65,10 @@ const TrackedApp = memo(({ app, appsColorMap, removeTrackingLog }) => {
         style={{ backgroundColor: appsColorMap[app.name.toLowerCase()] }}
       />
       <h4>
-        {app.name} - {convertMs(app.elapsedTime)}
+        {app.name} - {prettyTime(app.elapsedTime)}
       </h4>
       <div className="d-inline flex-end">
-        <p>{convertDate(app.endDate)}</p>
+        <p>{convertDate(app.startDate)}</p>
         <DeleteIcon
           className="remove-icon"
           height="20px"
@@ -83,7 +81,10 @@ const TrackedApp = memo(({ app, appsColorMap, removeTrackingLog }) => {
   )
 })
 
-const ProjectLine = memo(({ lastInputTime, project, isTracking, name, trackingData }) => {
+const ProjectLine = memo(({ project, isTracking, name, trackingData }) => {
+  const dispatch = useDispatch()
+  const lastInputTime = useSelector((state) => state.tracking.lastInputTime)
+
   return (
     <div className="project-line-vertical">
       <div className="project-line-header d-inline">
@@ -99,31 +100,19 @@ const ProjectLine = memo(({ lastInputTime, project, isTracking, name, trackingDa
               }`}
             ></span>
           }
-          {`${name} - ${convertMs(project.elapsedTime)}`}
+          {`${name} - ${prettyTime(project.elapsedTime)}`}
         </h3>
-        {project.toggled ? (
-          <PowerIcon
-            fill="#FF6347"
-            height="30px"
-            onClick={() => {
-              dispatch(toggleProject({ projectName: name }))
-              if (trackingData[name].toggled) {
-                dispatch(stopTracking({ projectName: name }))
-              }
-            }}
-          />
-        ) : (
-          <PowerIcon
-            fill="#1AA68A"
-            height="30px"
-            onClick={() => {
-              dispatch(toggleProject({ projectName: projectKey }))
-              if (trackingData[projectKey].toggled) {
-                dispatch(stopTracking({ projectName: projectKey }))
-              }
-            }}
-          />
-        )}
+
+        <PowerIcon
+          fill={project.toggled ? '#1AA68A' : '#FF6347'}
+          height="30px"
+          onClick={() => {
+            dispatch(toggleProject({ projectName: name }))
+            if (trackingData[name].toggled) {
+              dispatch(stopTracking({ projectName: name }))
+            }
+          }}
+        />
       </div>
     </div>
   )
@@ -135,12 +124,12 @@ const ProjectSettings = memo(
     const { name } = useParams()
     return (
       <div className="project-settings project-settings-track">
-        <input
+        {/* <input
           onChange={(e) => dispatch(setCurrentProject(e.target.value))}
           type="text"
           placeholder="Project Name"
           value={currentProject}
-        />
+        /> */}
         <DataListProcesses inputValue={inputValue} setInputValue={setInputValue} />
         <button
           onClick={() => {
@@ -157,7 +146,7 @@ const ProjectSettings = memo(
             dispatch(setTrackedApps([]))
           }}
         >
-          {currentProject == name ? 'Modify' : 'Create'}
+          Save
         </button>
       </div>
     )
@@ -233,7 +222,7 @@ const ProjectFilters = memo(
           <input
             className="filter-input"
             type="text"
-            placeholder="Value"
+            placeholder="Time value"
             onChange={(e) => setFilterValue(e.target.value)}
           />
           <button
@@ -264,137 +253,67 @@ const TrackedAppBar = memo(({ bar }) => {
   return <div className="event-bar" style={{ width: `${bar.load}%`, backgroundColor: bar.color }} />
 })
 
-export default function Project() {
-  const { name } = useParams()
-  const trackingData = useSelector((state) => state.trackingData)
-  const project = trackingData[name]
-  const currentProject = useSelector((state) => state.tracking.currentProject)
-  const trackedApps = useSelector((state) => state.tracking.trackedApps)
-  const processes = useSelector((state) => state.processes)
-  const lastInputTime = useSelector((state) => state.tracking.lastInputTime)
-  const isTracking = useSelector((state) => state.tracking.isTracking)
-  const minLogSecs = useSelector((state) => state.settings.minLogSecs)
-  const currentPeriod = useSelector((state) => state.tracking.currentPeriod)
-  const [inputValue, setInputValue] = useState('')
-  const [operator, setOperator] = useState('')
-  const [filterValue, setFilterValue] = useState('')
-  const [filters, setFilters] = useState([
-    { operator: '>', value: 30 > minLogSecs ? 30 : minLogSecs }
-  ])
-  const [currentProjectTrackingData, setCurrentProjectTrackingData] = useState(project)
+const getSpaceAndCentPercent = (projectApps) => {
+  let centPercent = projectApps.reduce((acc, log) => acc + log.elapsedTime, 0)
+  const min = 0.005
+  const max = 0.01
+  const inputMax = 100
+  const inputMin = 0
+  let scaled =
+    ((max - min) / (inputMax < projectApps.length ? projectApps.length : inputMax - inputMin)) *
+      (projectApps.length - inputMin) +
+    min
+  const spacePercent = (projectApps.length - 1) * centPercent * scaled
+  centPercent = centPercent + spacePercent
+  const space = (spacePercent / (projectApps.length - 1) / centPercent) * 100
+  return { space, centPercent }
+}
 
-  useEffect(() => {
-    let prevEndDate = 0
-    let elapsedTime = 0
-    console.log('Numbers of logs', currentProjectTrackingData.trackingLogs.length)
-    for (const trackingLog of currentProjectTrackingData.trackingLogs) {
-      if (trackingLog.endDate - trackingLog.startDate !== trackingLog.elapsedTime)
-        console.log('Error elapsed time mismatch start and end dates', trackingLog)
-      elapsedTime += trackingLog.elapsedTime
-      if (trackingLog.startDate < prevEndDate) console.warn('Error  imposibles dates!', trackingLog)
-    }
-    if (currentProjectTrackingData.elapsedTime !== elapsedTime)
-      console.log(
-        'Error missmatch total elapsed times. \nCalculated : %s \nCaved : %s \nDifference : %s',
-        convertMs(elapsedTime),
-        convertMs(currentProjectTrackingData.elapsedTime),
-        convertMs(currentProjectTrackingData.elapsedTime - elapsedTime)
-      )
-  }, [currentProjectTrackingData])
-
-  const dispatch = useDispatch()
-
-  const removeTrackedApp = useCallback((appName) => {
-    dispatch(removeTrackedAppAction({ appName, projectName: name }))
-    ipcRenderer.send('delete-tracked-app', { appName, projectName: name })
-  }, [])
-
-  const removeTrackingLogCallback = useCallback(
-    (trackingLog) => {
-      console.log('trackingLog', trackingLog)
-      dispatch(removeTrackingLog({ ...trackingLog, projectName: name }))
-      setCurrentProjectTrackingData((prev) => ({
-        ...prev,
-        trackingLogs: prev.trackingLogs.filter(
-          (log) =>
-            log.name !== trackingLog.name ||
-            log.startDate !== trackingLog.startDate ||
-            log.endDate !== trackingLog.endDate
+const projectLogsFusion = (trackingLogs) => {
+  let projectAppsFusion = []
+  let fusionIndex = 0
+  for (let i = 1; i < trackingLogs.length; i++) {
+    const log = trackingLogs[i]
+    const previousLog = trackingLogs[i - 1]
+    if (log.name !== previousLog.name) {
+      let fusion = [...trackingLogs].splice(fusionIndex, i - fusionIndex)
+      projectAppsFusion.push(
+        fusion.reduce(
+          (acc, log) => ({
+            ...log,
+            ...acc,
+            elapsedTime: acc.elapsedTime + log.endDate - log.startDate
+          }),
+          { elapsedTime: 0 }
         )
-      }))
-      ipcRenderer.send('delete-tracking-log', { ...trackingLog, projectName: name })
-    },
-    [trackingData]
-  )
-
-  const removeFilter = useCallback((index) => {
-    setFilters(filters.filter((_, i) => i !== index))
-  }, [])
-
-  useEffect(() => {
-    ;(async () => {
-      const trackingData = await ipcRenderer.invoke('load-data', filters)
-      setCurrentProjectTrackingData(trackingData[name])
-    })()
-  }, [filters])
-
-  const uniqueApps = useMemo(() => {
-    return [...new Set(project?.trackingLogs?.map((log) => log.name.toLowerCase()))]
-  }, [project?.trackingLogs])
-
-  const appsColorMap = useMemo(() => {
-    let appWithColorMap = {}
-    for (const appKey in uniqueApps) {
-      const app = uniqueApps[appKey]
-      appWithColorMap[app.toLowerCase()] = pastelColors[appKey % pastelColors.length]
+      )
+      fusionIndex = i
     }
-    for (const appKey in project?.apps) {
-      const app = project?.apps[appKey]
-      appWithColorMap[app.name.toLowerCase()] = pastelColors[appKey % pastelColors.length]
-    }
-    return appWithColorMap
-  }, [uniqueApps, project?.apps])
+  }
+  return projectAppsFusion
+}
 
-  const projectAppsSorted = useMemo(
-    () =>
-      [...(currentProjectTrackingData?.trackingLogs || [])]
-        .sort((a, b) => b.endDate - a.endDate)
-        .filter((log) => log?.endDate),
-    [currentProjectTrackingData?.trackingLogs]
-  )
-
-  const projectAppsSortedFiltered = useMemo(
-    () =>
-      projectAppsSorted.filter(
-        (log) => log?.startDate >= currentPeriod?.start && log?.endDate <= currentPeriod?.end
-      ),
-    [projectAppsSorted, currentPeriod]
-  )
-
+const TrackedAppsOverview = memo(({ trackingLogs, appsColorMap }) => {
   const projectBars = useMemo(() => {
-    let projectBars = [],
-      isFirst = true
-    let centPercent = projectAppsSorted.reduce((acc, log) => acc + log.elapsedTime, 0)
-    const min = 0.005
-    const max = 0.01
-    const inputMax = 100
-    const inputMin = 0
-    let scaled =
-      ((max - min) /
-        (inputMax < projectAppsSorted.length ? projectAppsSorted.length : inputMax - inputMin)) *
-        (projectAppsSorted.length - inputMin) +
-      min
-    const spacePercent = (projectAppsSorted.length - 1) * centPercent * scaled
-    centPercent = centPercent + spacePercent
-    const space = (spacePercent / (projectAppsSorted.length - 1) / centPercent) * 100
-    for (const log of projectAppsSorted) {
-      if (!isFirst)
+    let projectBars = []
+    let isFirst = true
+    const projectAppsFusionedTemp = projectLogsFusion(trackingLogs)
+    const { centPercent: centPercentTemp } = getSpaceAndCentPercent(projectAppsFusionedTemp)
+    const newProjectApps = projectAppsFusionedTemp.filter(
+      (log) => (log.elapsedTime / centPercentTemp) * 100 > 0.1
+    )
+    const newProjectAppsFusioned = projectLogsFusion(newProjectApps)
+    const { centPercent, space } = getSpaceAndCentPercent(newProjectAppsFusioned)
+
+    for (const log of newProjectAppsFusioned) {
+      if (!isFirst) {
         projectBars.push({
           load: space.toFixed(2),
           isSpace: true,
           name: log.name,
           color: 'transparent'
         })
+      }
       projectBars.push({
         load: ((log.elapsedTime / centPercent) * 100).toFixed(2),
         isSpace: false,
@@ -404,7 +323,159 @@ export default function Project() {
       isFirst = false
     }
     return projectBars
-  }, [projectAppsSorted])
+  }, [trackingLogs])
+
+  return (
+    <div className="feature-item grid-fill">
+      <h3>App's usage overview</h3>
+      <div className="event-bars">
+        {projectBars.map((bar, i) => (
+          <TrackedAppBar key={i} bar={bar} appsColorMap={appsColorMap} />
+        ))}
+      </div>
+    </div>
+  )
+})
+
+const TrackedEventsDetails = memo(({ trackingLogs, appsColorMap, filters }) => {
+  const currentPeriod = useSelector((state) => state.tracking.currentPeriod)
+  const trackingData = useSelector((state) => state.trackingData)
+  const [currentPage, setCurrentPage] = useState(1)
+  const trackingLogsSortedFiltered = useMemo(
+    () =>
+      trackingLogs
+        .filter(
+          (log) => log?.startDate >= currentPeriod?.start && log?.endDate <= currentPeriod?.end
+        )
+        .filter((log) => {
+          for (const filter of filters) {
+            switch (filter.operator) {
+              case '>':
+                if (log.endDate - log.startDate < filter.value * 1000) return false
+                break
+              case '>=':
+                if (log.endDate - log.startDate <= filter.value * 1000) return false
+                break
+              case '<':
+                if (log.endDate - log.startDate > filter.value * 1000) return false
+                break
+              case '<=':
+                if (log.endDate - log.startDate >= filter.value * 1000) return false
+                break
+            }
+          }
+          return log.startDate && log.endDate
+        }),
+    [trackingLogs, currentPeriod]
+  )
+
+  const { name } = useParams()
+  const trackingLogsPaginated = useMemo(
+    () => [...trackingLogsSortedFiltered].splice((currentPage - 1) * 10, currentPage * 10),
+    [currentPage, trackingLogsSortedFiltered]
+  )
+  const dispatch = useDispatch()
+  const removeTrackingLogCallback = useCallback(
+    (trackingLog) => {
+      dispatch(removeTrackingLog({ ...trackingLog, projectName: name }))
+      ipcRenderer.send('delete-tracking-log', { ...trackingLog, projectName: name })
+    },
+    [trackingData]
+  )
+
+  return (
+    <div className="feature-item grid-fill">
+      <details>
+        <summary>
+          Tracked events details
+          <ChevronDown height={'24px'} fill="white" />
+        </summary>
+
+        {trackingLogsPaginated.map((app, i) => (
+          <TrackedApp
+            key={i}
+            app={app}
+            appsColorMap={appsColorMap}
+            removeTrackingLog={removeTrackingLogCallback}
+          />
+        ))}
+        {trackingLogsPaginated.length === 0 && (
+          <p className="no-data">
+            No data to display. Please select another period using the graph controls.
+          </p>
+        )}
+        <div className="pagination">
+          <ChevronLeft
+            fill="white"
+            onClick={() => setCurrentPage((prev) => (prev > 1 ? prev - 1 : prev))}
+          />
+          <span className="page-number">{currentPage}</span>
+          <ChevronRight fill="white" onClick={() => setCurrentPage((prev) => prev + 1)} />
+        </div>
+      </details>
+    </div>
+  )
+})
+
+export default function Project() {
+  const { name } = useParams()
+  const trackingData = useSelector((state) => state.trackingData)
+  const project = useSelector((state) => state.trackingData[name])
+  const trackedApps = useSelector((state) => state.tracking.trackedApps)
+  const processes = useSelector((state) => state.processes)
+  const isTracking = useSelector((state) => state.tracking.isTracking)
+  const minLogSecs = useSelector((state) => state.settings.minLogSecs)
+
+  const [inputValue, setInputValue] = useState('')
+  const [operator, setOperator] = useState('')
+  const [filterValue, setFilterValue] = useState('')
+  const [filters, setFilters] = useState([
+    { operator: '>', value: 30 > minLogSecs ? 30 : minLogSecs }
+  ])
+
+  const currentProject = useSelector((state) => state.trackingData[name])
+
+  const dispatch = useDispatch()
+
+  const removeTrackedApp = useCallback((appName) => {
+    dispatch(removeTrackedAppAction({ appName, projectName: name }))
+    ipcRenderer.send('delete-tracked-app', { appName, projectName: name })
+  }, [])
+
+  const removeFilter = useCallback((index) => {
+    setFilters(filters.filter((_, i) => i !== index))
+  }, [])
+
+  const allApps = useMemo(
+    () =>
+      [
+        ...new Set([
+          ...(project?.trackingLogs || []).map((log) => log.name.toLowerCase()),
+          ...(project?.apps.map((app) => app.name.toLowerCase()) || []),
+          ...(trackedApps.map((app) => app.name.toLowerCase()) || [])
+        ])
+      ].filter((app) => !!app),
+    [project?.trackingLogs, project?.apps, trackedApps]
+  )
+
+  const appsColorMap = useMemo(() => {
+    let appWithColorMap = {}
+    for (const appKey in allApps) {
+      const app = allApps[appKey]
+      appWithColorMap[app.toLowerCase()] = pastelColors[appKey % pastelColors.length]
+    }
+    return appWithColorMap
+  }, [allApps])
+
+  const trackingLogsEnded = useMemo(
+    () => (currentProject?.trackingLogs || []).filter((log) => log?.endDate),
+    [currentProject?.trackingLogs]
+  )
+
+  const trackingLogsSorted = useMemo(
+    () => trackingLogsEnded.sort((a, b) => b.endDate - a.endDate),
+    [currentProject?.trackingLogsEnded]
+  )
 
   useEffect(() => {
     dispatch(setCurrentProject(name))
@@ -422,17 +493,15 @@ export default function Project() {
             <HeaderTracking />
             <div className="features  project-features">
               <div className="feature-item">
-                {currentProjectTrackingData && (
-                  <ProjectLine
-                    project={project}
-                    lastInputTime={lastInputTime}
-                    isTracking={isTracking}
-                    name={name}
-                    trackingData={trackingData}
-                  />
-                )}
+                <ProjectLine
+                  project={project}
+                  isTracking={isTracking}
+                  name={name}
+                  trackingData={trackingData}
+                />
+
                 <ProjectSettings
-                  currentProject={currentProject}
+                  currentProject={name}
                   processes={processes}
                   setInputValue={setInputValue}
                   inputValue={inputValue}
@@ -455,43 +524,16 @@ export default function Project() {
                 filters={filters}
                 removeFilter={removeFilter}
               />
-              <div className="feature-item grid-fill">
-                <h3>Tracked Events</h3>
-                <div className="event-bars">
-                  {projectBars.map((bar, i) => (
-                    <TrackedAppBar key={i} bar={bar} appsColorMap={appsColorMap} />
-                  ))}
-                </div>
-              </div>
+              <TrackedAppsOverview trackingLogs={trackingLogsSorted} appsColorMap={appsColorMap} />
 
               <div className="feature-item grid-fill">
-                <ProjectBarCharts
-                  appsColorMap={appsColorMap}
-                  trackingLogs={project?.trackingLogs || []}
-                />
+                <ProjectBarCharts appsColorMap={appsColorMap} projectName={name} />
               </div>
-
-              <div className="feature-item grid-fill">
-                <details>
-                  <summary>
-                    Tracked Events details
-                    <ChevronDown height={'24px'} fill="white" />
-                  </summary>
-                  {projectAppsSortedFiltered.map((app, i) => (
-                    <TrackedApp
-                      key={i}
-                      app={app}
-                      appsColorMap={appsColorMap}
-                      removeTrackingLog={removeTrackingLogCallback}
-                    />
-                  ))}
-                  {projectAppsSortedFiltered.length === 0 && (
-                    <p className="no-data">
-                      No data to display. Please select another period using the graph controls.
-                    </p>
-                  )}
-                </details>
-              </div>
+              <TrackedEventsDetails
+                trackingLogs={trackingLogsSorted}
+                appsColorMap={appsColorMap}
+                filters={filters}
+              />
             </div>
           </>
         )}

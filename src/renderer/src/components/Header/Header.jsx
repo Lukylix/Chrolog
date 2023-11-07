@@ -6,11 +6,13 @@ import { ReactComponent as Maximize } from '../../assets/fullscreen.svg'
 
 import './header.css'
 import { memo, useCallback } from 'react'
+import useTracking from '../../hooks/useTracking'
 
 const Header = memo(() => {
   const minimize = useCallback(() => ipcRenderer.send('minimize-event'), [])
   const maximize = useCallback(() => ipcRenderer.send('maximize-event'), [])
   const close = useCallback(() => ipcRenderer.send('close-event'), [])
+  useTracking(true)
 
   return (
     <div className="header">

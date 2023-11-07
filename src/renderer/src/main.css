@@ -168,3 +168,7 @@ button {
   width: 15px;
   border-radius: 7px;
 }
+
+.w-100 {
+  width: 100%;
+}

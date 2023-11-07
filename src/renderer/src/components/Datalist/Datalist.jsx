@@ -62,11 +62,9 @@ export const DataList = memo(
                 <option
                   key={i}
                   onClick={(e) => onClick(e.target.value)}
-                  style={{
-                    display: item.toLowerCase().includes(inputValue.toLowerCase())
-                      ? 'block'
-                      : 'none'
-                  }}
+                  className={`datalist-item ${
+                    item.toLowerCase().includes(inputValue.toLowerCase()) && 'active'
+                  }`}
                 >
                   {item || item?.[dataKey]}
                 </option>

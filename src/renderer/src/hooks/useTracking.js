@@ -3,7 +3,6 @@ import { useDispatch, useSelector } from 'react-redux'
 import {
   createProject,
   updateTrackingData,
-  updateTrackingDataAfterInactivity,
   stopTrackingAll,
   saveTrackingData
 } from '../stores/trackingData.js'
@@ -12,24 +11,17 @@ import { setProcesses } from '../stores/processes.js'
 import {
   setIsTracking,
   setLastInputTime,
-  setLastTrackTime,
   setIsGettingProcessList,
   setIsLoadingData,
   setProcessCount,
   setCurrentProcess,
   setCompletedProcess,
-  setShouldTrack,
   setIsTrackingRunning,
-  setShouldRestartTracking,
   setCurrentTab
 } from '../stores/tracking.js'
-import {
-  addSitesExclusion,
-  setIsFirstSettingsLoad,
-  setSettings,
-  setSitesExclusions
-} from '../stores/settings.js'
+import { addSitesExclusion, setIsFirstSettingsLoad, setSettings } from '../stores/settings.js'
 import { setInitialLoad } from '../stores/initialLoad.js'
+import { useState } from 'react'
 
 const { ipcRenderer } = window.require('electron')
 
@@ -43,63 +35,58 @@ const useTracking = (isMaster = false) => {
   const isFirstSettingsLoad = useSelector((state) => state.settings.isFirstSettingsLoad)
   const isTrackingRunning = useSelector((state) => state.tracking.isTrackingRunning)
   const trackingData = useSelector((state) => state.trackingData)
+
   const lastInputTime = useSelector((state) => state.tracking.lastInputTime)
-  const lastTrackTime = useSelector((state) => state.tracking.lastTrackTime)
   const minLastInputSecs = useSelector((state) => state.settings.minLastInputSecs)
-  const shouldTrack = useSelector((state) => state.tracking.shouldTrack)
   const currentTab = useSelector((state) => state.tracking.currentTab)
-  const shouldRestartTracking = useSelector((state) => state.tracking.shouldRestartTracking)
   const browserProcesses = useSelector((state) => state.settings.browserProcesses)
   const sitesExclusions = useSelector((state) => state.settings.sitesExclusions)
+  const minLogSecs = useSelector((state) => state.settings.minLogSecs)
+  const [shouldSkipTrack, setShouldSkipTrack] = useState(false)
 
   const dispatch = useDispatch()
 
   const track = useCallback(async () => {
-    dispatch(setShouldTrack(false))
-    if (!isTracking) return
+    if (!isTracking || !isMaster) return
     const activeApp = await ipcRenderer.invoke('get-active-app')
     if (!activeApp) return
-    const allProjectTrackedApps = Object.keys(trackingData).reduce((acc, projectKey) => {
-      const project = trackingData[projectKey]
-      if (project.toggled) acc = [...acc, ...project.apps]
-      return acc
-    }, [])
-    const trackedApp = allProjectTrackedApps.find(
-      (app) => app.name.toLowerCase().trim() === activeApp.toLowerCase().trim()
-    )
-    if (!trackedApp?.name || Date.now() - lastInputTime > minLastInputSecs * 1000)
-      return dispatch(stopTrackingAll())
-    const isBrowser = browserProcesses.find((browser) => trackedApp.name.includes(browser))
+    const isBrowser = browserProcesses.find((browser) => activeApp.includes(browser))
     const isExcluedSite = sitesExclusions.find((site) => currentTab.includes(site))
-    if (isBrowser && isExcluedSite) {
-      dispatch(
-        updateTrackingDataAfterInactivity({
-          trackedAppName: trackedApp.name,
-          lastInputTime: lastInputTime,
-          lastTrackTime: lastTrackTime,
-          isBrowser: isBrowser,
-          isExcluedSite: isExcluedSite
+    const isInactivity = Date.now() - lastInputTime > minLastInputSecs * 1000
+    const isStillInactive = isInactivity && shouldSkipTrack
+    setShouldSkipTrack(isInactivity)
+    if (isStillInactive) return
+
+    if (isInactivity || (isBrowser && isExcluedSite)) {
+      return dispatch(
+        stopTrackingAll({
+          trackedAppName: activeApp,
+          settings: {
+            minLogSecs,
+            isInactivity,
+            minLastInputSecs
+          }
         })
       )
-      dispatch(setLastTrackTime(Date.now()))
-      return
     }
     dispatch(
       updateTrackingData({
-        trackedAppName: trackedApp.name
+        trackedAppName: activeApp,
+        settings: {
+          minLogSecs
+        }
       })
     )
-    dispatch(setLastTrackTime(Date.now()))
   }, [
     isTracking,
     lastInputTime,
-    lastTrackTime,
     minLastInputSecs,
-    trackingData,
     currentTab,
     browserProcesses,
-    sitesExclusions
+    sitesExclusions,
+    shouldSkipTrack
   ])
+
   useEffect(() => {
     ;(async () => {
       if (!isMaster) return
@@ -111,28 +98,6 @@ const useTracking = (isMaster = false) => {
       dispatch(setIsFirstSettingsLoad(false))
     })()
   }, [])
-
-  useEffect(() => {
-    let shouldClear = false
-    ;(async () => {
-      if (!isTrackingRunning && isMaster) {
-        dispatch(setIsTrackingRunning(true))
-        while (shouldClear === false) {
-          dispatch(setShouldTrack(true))
-          await new Promise((resolve) => setTimeout(resolve, 1000))
-        }
-        dispatch(setIsTrackingRunning(false))
-        dispatch(setShouldRestartTracking(true))
-      }
-    })()
-    return () => {
-      shouldClear = true
-    }
-  }, [shouldRestartTracking])
-
-  useEffect(() => {
-    if (shouldTrack && isMaster) track()
-  }, [shouldTrack])
 
   const loadData = useCallback(async () => {
     if (Object.keys(trackingData).length > 0 || isLoadingData) return
@@ -159,38 +124,71 @@ const useTracking = (isMaster = false) => {
 
   useEffect(() => {
     if (!isMaster) return
-    ipcRenderer.on('current-tab', (event, hostname) => {
+    const currentTabCallback = (event, hostname) => {
       dispatch(setCurrentTab(hostname))
-    })
-    ipcRenderer.on('add-tab', (event, hostname) => {
+    }
+    ipcRenderer.on('current-tab', currentTabCallback)
+
+    const addTabCallback = (event, hostname) => {
       dispatch(addSitesExclusion(hostname))
-    })
-    ipcRenderer.on('window-closed', () => {
+    }
+    ipcRenderer.on('add-tab', addTabCallback)
+    const windowClosedCallback = () => {
       dispatch(setIsTracking(false))
-    })
-    ipcRenderer.on('fetching-process-count', (event, count) => {
+    }
+    ipcRenderer.on('window-closed', windowClosedCallback)
+    const fetchingProcessCountCallback = (event, count) => {
       dispatch(setCurrentProcess(count))
-    })
-    ipcRenderer.on('process-completed-event', (event, count) => {
+    }
+    ipcRenderer.on('fetching-process-count', fetchingProcessCountCallback)
+    const processCompletedCallback = (event, count) => {
       dispatch(setCompletedProcess(count))
-    })
-    ipcRenderer.on('processes-event', (event, processesRes) => {
+    }
+    ipcRenderer.on('process-completed-event', processCompletedCallback)
+    const processesCallback = (event, processesRes) => {
       if (processesRes.length === 0) return
       dispatch(setProcesses(processesRes))
       dispatch(setIsGettingProcessList(false))
       dispatch(setInitialLoad(false))
-    })
-    ipcRenderer.on('keyboard_event', () => {
+    }
+    ipcRenderer.on('processes-event', processesCallback)
+    const keyboardEventCallback = () => {
       dispatch(setLastInputTime(Date.now()))
-    })
-
-    ipcRenderer.on('mouse_event', () => {
+    }
+    ipcRenderer.on('keyboard_event', keyboardEventCallback)
+    const mouseEventCallback = () => {
       dispatch(setLastInputTime(Date.now()))
-    })
-
+    }
+    ipcRenderer.on('mouse_event', mouseEventCallback)
+    console.log('Listeners added')
     getProcessCount()
     loadData()
+    return () => {
+      ipcRenderer.removeListener('current-tab', currentTabCallback)
+      ipcRenderer.removeListener('add-tab', addTabCallback)
+      ipcRenderer.removeListener('window-closed', windowClosedCallback)
+      ipcRenderer.removeListener('fetching-process-count', fetchingProcessCountCallback)
+      ipcRenderer.removeListener('process-completed-event', processCompletedCallback)
+      ipcRenderer.removeListener('processes-event', processesCallback)
+      ipcRenderer.removeListener('keyboard_event', keyboardEventCallback)
+      ipcRenderer.removeListener('mouse_event', mouseEventCallback)
+      console.log('Listeners removed')
+    }
   }, [])
+
+  useEffect(() => {
+    if (!isMaster) return
+    let intervalId = null
+    if (isTracking) {
+      track()
+      intervalId = setInterval(track, 100)
+      dispatch(setIsTrackingRunning(true))
+    }
+    return () => {
+      clearInterval(intervalId)
+      dispatch(setIsTrackingRunning(false))
+    }
+  }, [isTracking, track])
 
   useEffect(() => {
     if (!isMaster) return

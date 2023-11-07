@@ -56,14 +56,19 @@ let lastKeyboardEventTime = Date.now()
 
 const hookInputsWin32 = async () => {
   const instance = new Chrolog()
+
   instance.setKeyboardCallback(() => {
-    if (lastKeyboardEventTime + 500 > Date.now()) return
+    const currentTime = Date.now()
+    if (lastKeyboardEventTime + 200 > currentTime) return
+    lastKeyboardEventTime = currentTime
     webContents.getAllWebContents().forEach((webContent) => {
       webContent.send('keyboard_event')
     })
   })
   instance.setMouseCallback(() => {
-    if (lastMouseEventTime + 500 > Date.now()) return
+    const currentTime = Date.now()
+    if (lastMouseEventTime + 200 > currentTime) return
+    lastMouseEventTime = currentTime
     webContents.getAllWebContents().forEach((webContent) => {
       webContent.send('mouse_event')
     })

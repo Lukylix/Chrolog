@@ -12,15 +12,12 @@ import './home.css'
 import Loader from '../../components/Loader/Loader.jsx'
 import DatalistProcesses from '../../components/DatalistProcesses/DatalistProcesses.jsx'
 
-const convertSeconds = (seconds) => {
-  isNaN(seconds) && (seconds = 0)
-  let hours = Math.floor(seconds / 3600)
-  let minutes = Math.floor((seconds % 3600) / 60)
-  let remainingSeconds = seconds % 60
-  if (!hours && !minutes) return `${remainingSeconds}s`
-  if (!hours) return `${minutes}min ${remainingSeconds}s`
-  if (!minutes) return `${hours}h ${remainingSeconds}s`
-  return `${hours}h ${minutes}min ${remainingSeconds}s`
+const prettyTime = (ms) => {
+  const s = Math.floor(ms / 1000)
+  const hours = Math.floor(s / 3600)
+  const minutes = Math.floor((s - hours * 3600) / 60)
+  const seconds = parseInt(s - hours * 3600 - minutes * 60)
+  return `${hours ? hours + 'h' : ''} ${minutes ? minutes + 'm' : ''} ${seconds || 0 + 's'}`
 }
 
 const Home = () => {
@@ -30,6 +27,7 @@ const Home = () => {
   const trackedApps = useSelector((state) => state.tracking.trackedApps)
   const currentProject = useSelector((state) => state.tracking.currentProject)
   const isTracking = useSelector((state) => state.tracking.isTracking)
+  const minLastInputSecs = useSelector((state) => state.settings?.minLastInputSecs)
 
   const [inputValue, setInputValue] = useState('')
   const dispatch = useDispatch()
@@ -82,20 +80,21 @@ const Home = () => {
                     Create Project
                   </button>
                 </div>
-                <div className="app-list">
-                  {trackedApps.map((app, i) => (
-                    <span key={i}>
-                      {app.name}
-                      <RemoveIcon
-                        height="15px"
-                        width="15px"
-                        fill="white"
-                        onClick={() => removeTrackedApp(app.name)}
-                      />
-                      {trackedApps.length - 1 > i && ', '}
-                    </span>
-                  ))}
-                </div>
+                {trackedApps?.length > 0 && (
+                  <div className="app-list">
+                    {trackedApps.map((app, i) => (
+                      <span key={i}>
+                        {app.name}
+                        <RemoveIcon
+                          height="15px"
+                          width="15px"
+                          fill="white"
+                          onClick={() => removeTrackedApp(app.name)}
+                        />
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {trackingData &&
@@ -103,55 +102,44 @@ const Home = () => {
                   const project = trackingData[projectKey]
 
                   return (
-                    <div key={i} className="feature-item project-line">
+                    <Link
+                      to={`/project/${projectKey}`}
+                      key={i}
+                      className="feature-item project-line"
+                    >
                       <h3 className="ellipsis">
                         {
                           <span
                             className={`${
-                              (Date.now() - lastInputTime > 10000 && project.toggled) ||
+                              (Date.now() - lastInputTime > 5000 && !!project.toggled) ||
                               !isTracking ||
-                              !project.toggled
+                              !!!project.toggled
                                 ? 'red-dot'
                                 : 'green-dot'
                             }`}
                           ></span>
                         }
-                        {`${projectKey} - ${convertSeconds(
-                          Math.round(project.elapsedTime / 1000)
-                        )}`}
+                        {`${projectKey} - ${prettyTime(project.elapsedTime)}`}
                       </h3>
-                      <div className="project" style={{ gridTemplateColumns: '1fr auto auto' }}>
+                      <div className="project">
                         <p className="ellipsis">
                           {project?.apps?.map((app) => app.name).join(', ') || ''}
                         </p>
-                        <Link to={`/project/${projectKey}`}>
-                          <EditIcon fill="white" />
-                        </Link>
-                        {project?.toggled ? (
-                          <PowerIcon
-                            fill="#FF6347"
-                            height="30px"
-                            onClick={() => {
-                              dispatch(toggleProject({ projectName: projectKey }))
-                              if (trackingData[projectKey].toggled) {
-                                dispatch(stopTracking({ projectName: projectKey }))
-                              }
-                            }}
-                          />
-                        ) : (
-                          <PowerIcon
-                            fill="#1AA68A"
-                            height="30px"
-                            onClick={() => {
-                              dispatch(toggleProject({ projectName: projectKey }))
-                              if (trackingData[projectKey].toggled) {
-                                dispatch(stopTracking({ projectName: projectKey }))
-                              }
-                            }}
-                          />
-                        )}
+
+                        <PowerIcon
+                          fill={project.toggled ? '#1AA68A' : '#FF6347'}
+                          height="30px"
+                          onClick={(e) => {
+                            e.preventDefault()
+                            e.stopPropagation()
+                            dispatch(toggleProject({ projectName: projectKey }))
+                            if (trackingData[projectKey].toggled) {
+                              dispatch(stopTracking({ projectName: projectKey }))
+                            }
+                          }}
+                        />
                       </div>
-                    </div>
+                    </Link>
                   )
                 })}
             </div>

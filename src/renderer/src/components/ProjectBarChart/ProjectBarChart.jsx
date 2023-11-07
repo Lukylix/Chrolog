@@ -19,14 +19,16 @@ import { setCurrentPeriod } from '../../stores/tracking'
 
 import './projectBarChart.css'
 
-const prettyTime = (s) => {
+const prettyTime = (ms) => {
+  const s = Math.floor(parseInt(ms) / 1000)
   const hours = Math.floor(s / 3600)
   const minutes = Math.floor((s - hours * 3600) / 60)
-  const seconds = s - hours * 3600 - minutes * 60
+  const seconds = parseInt(s - hours * 3600 - minutes * 60)
   return `${hours ? hours + 'h' : ''} ${minutes ? minutes + 'm' : ''} ${seconds || 0 + 's'}`
 }
 
-const prettyTimeHoursMins = (s) => {
+const prettyTimeHoursMins = (ms) => {
+  const s = Math.floor(parseInt(ms) / 1000)
   const hours = Math.floor(s / 3600)
   const minutes = Math.floor((s - hours * 3600) / 60)
   return `${hours ? hours + 'h' : ''} ${minutes ? minutes + 'm' : ''}`
@@ -34,39 +36,68 @@ const prettyTimeHoursMins = (s) => {
 
 const periods = ['week', 'month', 'year']
 
-const currentDate = new Date()
-const currentDay = currentDate.getDay() // Current day of the week (0-6)
-const startDay = new Date(new Date().setDate(currentDate.getDate() - currentDay)) // Start day (Monday)
-const endDay = new Date(new Date().setDate(currentDate.getDate() - currentDay + 6)) // End day (Sunday)
-
-const ProjectBarCharts = memo(({ appsColorMap, trackingLogs }) => {
+const ProjectBarCharts = memo(({ appsColorMap, projectName }) => {
   const dispatch = useDispatch()
   const [period, setPeriod] = useState('week')
-
+  const trackingLogs = useSelector((state) => state.trackingData[projectName].trackingLogs || [])
   const currentPeriod = useSelector((state) => state.tracking.currentPeriod)
-  const trackingLogsFinished = useMemo(
-    () => trackingLogs.filter((log) => log.endDate),
+
+  const trackingLogsPerApp = useMemo(
+    () =>
+      trackingLogs.reduce(
+        (acc, log) => ({
+          ...acc,
+          [log.name]: (acc[log.name] || 0) + (log.endDate ? log.endDate - log.startDate : 0)
+        }),
+        {}
+      ),
     [trackingLogs.length]
   )
+  useEffect(() => {
+    for (const appName in trackingLogsPerApp) {
+      console.log(appName, prettyTime(trackingLogsPerApp[appName]))
+    }
+  }, [trackingLogsPerApp])
+
   const trackedApps = useMemo(
-    () =>
-      trackingLogsFinished.reduce(
-        (acc, curr) =>
-          curr.name && !acc.includes(curr.name.toLowerCase())
-            ? [...acc, curr.name.toLowerCase()]
-            : acc,
-        []
-      ),
-    [trackingLogsFinished]
+    () => [...new Set(trackingLogs.map((log) => log.name?.toLowerCase()).filter((log) => log))],
+    [trackingLogs.length]
   )
 
   useEffect(() => {
+    console.log('trackedApps', trackedApps)
+  }, [trackedApps.length])
+
+  useEffect(() => {
     const currentDate = new Date()
+    const currentDay = currentDate.getDay()
     if (period === 'week') {
+      const startDay = new Date(
+        currentDate.getFullYear(),
+        currentDate.getMonth(),
+        currentDate.getDate() - currentDay
+      )
+      const endDay = new Date(
+        currentDate.getFullYear(),
+        currentDate.getMonth(),
+        currentDate.getDate() + (7 - currentDay),
+        1,
+        59,
+        59,
+        999
+      )
       dispatch(setCurrentPeriod({ start: startDay.getTime(), end: endDay.getTime() }))
     } else if (period === 'month') {
-      const firstDayOfMonth = new Date(currentDate.setDate(1))
-      const lastDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0)
+      const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1)
+      const lastDayOfMonth = new Date(
+        currentDate.getFullYear(),
+        currentDate.getMonth() + 1,
+        1,
+        0,
+        0,
+        0,
+        0
+      )
       dispatch(
         setCurrentPeriod({ start: firstDayOfMonth.getTime(), end: lastDayOfMonth.getTime() })
       )
@@ -89,34 +120,67 @@ const ProjectBarCharts = memo(({ appsColorMap, trackingLogs }) => {
         ? startDayToEndOfMonth + endDate.getDate()
         : endDate.getDate() - startDate.getDate()
     let chartDataPerDay = []
+
+    const trackingLogsFiltered = trackingLogs.filter(
+      (log) => log.startDate >= startDate.getTime() && log.endDate <= endDate.getTime()
+    )
+
+    let trackedAppsLogsMap = {}
+    for (const log of trackingLogsFiltered) {
+      const logName = log.name.toLowerCase()
+      if (!trackedAppsLogsMap[logName]) trackedAppsLogsMap[logName] = []
+      const logStartDate = new Date(log.startDate)
+      const logEndDate = new Date(log.endDate || Date.now())
+      trackedAppsLogsMap[logName].push({
+        ...log,
+        startDate: logStartDate,
+        endDate: logEndDate,
+        year: logStartDate.getFullYear(),
+        month: logStartDate.getMonth(),
+        day: logStartDate.getDate()
+      })
+    }
+
+    console.log('trackinglogs filtered', trackingLogsFiltered.length)
+    console.log(
+      'trackedAppsLogsMap',
+      Object.keys(trackedAppsLogsMap).reduce(
+        (acc, curr) => acc + trackedAppsLogsMap[curr].length,
+        0
+      )
+    )
+
     for (let i = 0; i <= daysBetwenStartAndEnd; i++) {
       const currentDate = new Date(
         startDate.getFullYear(),
         startDate.getMonth(),
         startDate.getDate() + i
       )
-      const name = `${currentDate.getDate()}/${currentDate.getMonth() + 1}`
+      const year = currentDate.getFullYear()
+      const month = currentDate.getMonth()
+      const day = currentDate.getDate()
+      const name = `${day}/${month + 1}`
       chartDataPerDay.push({
         name: name,
         ...trackedApps.reduce((acc, app) => {
-          acc[app] = trackingLogsFinished.reduce((acc, curr) => {
-            if (
+          acc[app] = (trackedAppsLogsMap[app] || []).reduce(
+            (acc2, curr) =>
+              curr.startDate &&
               curr.endDate &&
-              curr.name.toLowerCase() === app.toLowerCase() &&
-              new Date(curr.startDate).getDate() === currentDate.getDate() &&
-              new Date(curr.startDate).getMonth() === currentDate.getMonth() &&
-              new Date(curr.startDate).getFullYear() === currentDate.getFullYear()
-            ) {
-              acc += parseInt((curr.elapsedTime / 1000).toFixed(0))
-            }
-            return acc
-          }, 0)
+              curr.day === day &&
+              curr.month === month &&
+              curr.year === year
+                ? acc2 + curr.endDate.getTime() - curr.startDate.getTime()
+                : acc2,
+
+            0
+          )
           return acc
         }, {})
       })
     }
     return chartDataPerDay
-  }, [trackingLogsFinished, trackedApps, currentPeriod])
+  }, [trackingLogs.length, trackedApps, currentPeriod])
 
   const getChartDataForEachMonth = useCallback(() => {
     let chartDataPerMonth = []
@@ -126,6 +190,23 @@ const ProjectBarCharts = memo(({ appsColorMap, trackingLogs }) => {
     const startYear = startDate.getFullYear()
     const endYear = endDate.getFullYear()
     const startToEndMonth = (endYear - startYear) * 12 + (endDate.getMonth() - startDate.getMonth())
+
+    let trackedAppsLogsMap = {}
+    for (const log of trackingLogs) {
+      const logName = log.name.toLowerCase()
+      if (!trackedAppsLogsMap[logName]?.length) trackedAppsLogsMap[logName] = []
+      const logStartDate = log.startDate ? new Date(log.startDate) : false
+      const logEndDate = log.endDate ? new Date(log.endDate) : false
+
+      trackedAppsLogsMap[logName].push({
+        ...log,
+        ...((logStartDate && { startDate: logStartDate }) || {}),
+        ...((logEndDate && { endDate: logEndDate }) || {}),
+        month: logStartDate.getMonth(),
+        year: logStartDate.getFullYear()
+      })
+    }
+    console.log('startToEndMonth', startToEndMonth)
     for (let i = 0; i <= startToEndMonth; i++) {
       const currentMonth = (startDate.getMonth() + i) % 11
       const currentYear = i > 11 ? endDate.getFullYear() : startDate.getFullYear()
@@ -133,14 +214,14 @@ const ProjectBarCharts = memo(({ appsColorMap, trackingLogs }) => {
       chartDataPerMonth.push({
         name: name,
         ...trackedApps.reduce((acc, app) => {
-          acc[app] = trackingLogsFinished.reduce((acc, curr) => {
+          acc[app] = (trackedAppsLogsMap[app] || []).reduce((acc, curr) => {
             if (
+              curr.startDate &&
               curr.endDate &&
-              curr.name.toLowerCase() === app.toLowerCase() &&
-              new Date(curr.startDate).getMonth() === currentMonth &&
-              new Date(curr.startDate).getFullYear() === currentYear
+              curr.month === currentMonth &&
+              curr.year === currentYear
             ) {
-              acc += parseInt((curr.elapsedTime / 1000).toFixed(0))
+              acc += curr.endDate.getTime() - curr.startDate.getTime()
             }
             return acc
           }, 0)
@@ -149,7 +230,7 @@ const ProjectBarCharts = memo(({ appsColorMap, trackingLogs }) => {
       })
     }
     return chartDataPerMonth
-  }, [trackingLogsFinished, trackedApps, currentPeriod])
+  }, [trackingLogs, trackedApps, currentPeriod])
 
   const addDaysToDate = useCallback((date, days) => {
     let result = new Date(date)
@@ -172,8 +253,8 @@ const ProjectBarCharts = memo(({ appsColorMap, trackingLogs }) => {
   // Function to handle next chart
   const nextChart = useCallback(() => {
     if (period === 'week') {
-      const start = addDaysToDate(currentPeriod.start, 6)
-      const end = addDaysToDate(currentPeriod.end, 6)
+      const start = addDaysToDate(currentPeriod.start, 7)
+      const end = addDaysToDate(currentPeriod.end, 7)
       dispatch(setCurrentPeriod({ start: start.getTime(), end: end.getTime() }))
     } else if (period === 'month') {
       const start = addMonthsToDate(currentPeriod.start, 1)
@@ -190,8 +271,8 @@ const ProjectBarCharts = memo(({ appsColorMap, trackingLogs }) => {
   // Function to handle previous chart
   const prevChart = useCallback(() => {
     if (period === 'week') {
-      const start = addDaysToDate(currentPeriod.start, -6)
-      const end = addDaysToDate(currentPeriod.end, -6)
+      const start = addDaysToDate(currentPeriod.start, -7)
+      const end = addDaysToDate(currentPeriod.end, -7)
       dispatch(setCurrentPeriod({ start: start.getTime(), end: end.getTime() }))
     } else if (period === 'month') {
       const start = addMonthsToDate(currentPeriod.start, -1)
@@ -204,13 +285,24 @@ const ProjectBarCharts = memo(({ appsColorMap, trackingLogs }) => {
       dispatch(setCurrentPeriod({ start: start.getTime(), end: end.getTime() }))
     }
   }, [currentPeriod, period])
+
   const dataChart = useMemo(() => {
     let chartDataPerDay = []
     if (period === 'week' || period === 'month') chartDataPerDay = getChartDataForEachDay()
     else if (period === 'year') chartDataPerDay = getChartDataForEachMonth()
 
     return chartDataPerDay
-  }, [trackingLogsFinished, trackedApps, currentPeriod])
+  }, [currentPeriod])
+
+  useEffect(() => {
+    for (const day of dataChart) {
+      for (const key in day) {
+        if (key === 'name') continue
+        if (day[key] <= 0) continue
+        console.log(day[key], prettyTime(day[key]))
+      }
+    }
+  }, [dataChart.length])
 
   const dataChartPositive = useMemo(() => {
     return dataChart.map((data) => {
@@ -223,9 +315,10 @@ const ProjectBarCharts = memo(({ appsColorMap, trackingLogs }) => {
 
   useEffect(() => {
     const handleKeyDown = (e) => {
-      console.log(e.keyCode)
-      if (e.keyCode === 37) prevChart()
-      else if (e.keyCode === 39) nextChart()
+      const leftArrow = 37
+      const rightArrow = 39
+      if (e.keyCode === leftArrow) prevChart()
+      else if (e.keyCode === rightArrow) nextChart()
     }
     addEventListener('keydown', handleKeyDown)
     return () => {
@@ -248,7 +341,7 @@ const ProjectBarCharts = memo(({ appsColorMap, trackingLogs }) => {
         />
         <ChevronRight fill="white" onClick={nextChart} />
       </div>
-      <ResponsiveContainer width="100%" maxHeight={300}>
+      <ResponsiveContainer width="100%" height={300}>
         <BarChart
           width={500}
           height={300}

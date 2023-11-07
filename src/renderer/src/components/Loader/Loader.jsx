@@ -1,7 +1,8 @@
 import { useSelector } from 'react-redux'
 import './loader.css'
+import { memo } from 'react'
 
-export default function Loader() {
+export default memo(() => {
   const processes = useSelector((state) => state.processes)
   const processCount = useSelector((state) => state.tracking.processCount)
   const currentProcess = useSelector((state) => state.tracking.currentProcess)
@@ -27,4 +28,4 @@ export default function Loader() {
   ) : (
     <></>
   )
-}
+})
