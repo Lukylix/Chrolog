@@ -3,3 +3,5 @@ dist
 out
 *.log*
 *.sqlite
+.yarn
+.yarnrc.*

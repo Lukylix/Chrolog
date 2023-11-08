@@ -353,7 +353,9 @@ const getProcessesListenerLinux = async () => {
   console.log('get-windows-with-icons')
   let processDirs = []
   try {
-    processDirs = fs.readdirSync('/proc').filter((name) => !isNaN(Number(name)) && name !== '1')
+    processDirs = fs
+      .readdirSync('/proc')
+      .filter((name) => !isNaN(Number(name.split('/')[0])) && name !== '1')
   } catch (error) {
     if (error.code !== 'EACCES' && error.code !== 'ENOENT') console.error(error)
   }

@@ -17,7 +17,12 @@ import Loader from '../../components/Loader/Loader.jsx'
 const { ipcRenderer } = window.require('electron')
 
 import { lastInputTime, currentPeriod, trackedApps, isTracking } from '../../signals/tracking.js'
-import { trackingData, addTrackedApp, removeTrackingLog } from '../../signals/trackingData.js'
+import {
+  trackingData,
+  removeTrackedApp,
+  addTrackedApp,
+  removeTrackingLog
+} from '../../signals/trackingData.js'
 import { toggleProject } from '../../signals/trackingData.js'
 import {
   trackingLogsSortedFiltered,
@@ -117,9 +122,9 @@ const ProjectSettings = memo(({}) => {
           trackedApps.value.forEach((app) => {
             ipcRenderer.send('create-tracked-app', {
               appName: app.name,
-              projectName: name
+              projectName: currentProjectName.value
             })
-            addTrackedApp({ projectName: currentProject.value, app })
+            addTrackedApp({ projectName: currentProjectName.value, app })
           })
 
           trackedApps.value = []
@@ -151,7 +156,7 @@ const ProjectApps = memo(() => {
               height="15px"
               width="15px"
               fill="#272727"
-              onClick={() => removeTrackedApp(app.name)}
+              onClick={() => removeTrackedAppCall(app.name)}
             />
           </span>
         ))}
@@ -170,7 +175,7 @@ const ProjectApps = memo(() => {
               height="15px"
               width="15px"
               fill="#272727"
-              onClick={() => removeTrackedApp(app.name)}
+              onClick={() => removeTrackedAppCall(app.name)}
             />
           </span>
         ))}
@@ -288,9 +293,9 @@ const removeFilter = (index) => {
   filters.value = filters.value.filter((_, i) => i !== index)
 }
 
-const removeTrackedApp = (appName) => {
-  removeTrackedApp({ appName, projectName: name })
-  ipcRenderer.send('delete-tracked-app', { appName, projectName: name })
+const removeTrackedAppCall = (appName) => {
+  removeTrackedApp({ appName, projectName: currentProjectName.value })
+  ipcRenderer.send('delete-tracked-app', { appName, projectName: currentProjectName.value })
 }
 
 export default function Project() {
