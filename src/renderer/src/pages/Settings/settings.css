@@ -1,4 +1,5 @@
-.site-exclusion {
+.site-exclusion,
+.browser-processes {
   padding: 5px 18px 5px 5px;
   border-radius: 5px;
   outline: 1px solid white;
@@ -10,4 +11,9 @@
   right: 2px;
   top: 2px;
   cursor: pointer;
+}
+
+.settings input {
+  max-height: 35px;
+  max-width: 200px;
 }

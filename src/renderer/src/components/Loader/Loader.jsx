@@ -1,26 +1,20 @@
-import { useSelector } from 'react-redux'
 import './loader.css'
 import { memo } from 'react'
 
-export default memo(() => {
-  const processes = useSelector((state) => state.processes)
-  const processCount = useSelector((state) => state.tracking.processCount)
-  const currentProcess = useSelector((state) => state.tracking.currentProcess)
-  const completedProcess = useSelector((state) => state.tracking.completedProcess)
-  const isGettingProcessList = useSelector((state) => state.tracking.isGettingProcessList)
-  const initialLoad = useSelector((state) => state.initialLoad)
-  const currentPrecent = (((currentProcess + completedProcess) / processCount) * 100).toFixed(2)
+import { currentPercent, isInitialLoad, isGettingProcessList } from '../../signals/tracking'
+import { processes } from '../../signals/processes'
 
-  return processes.length < 1 || (isGettingProcessList && initialLoad) ? (
+export default memo(() => {
+  return processes.value.length < 1 || (isGettingProcessList.value && isInitialLoad.value) ? (
     <section className="loader">
       <h1>
-        Loading process {currentPrecent < 50 ? 'list' : 'infos'}... {currentPrecent}%
+        Loading process {currentPercent.value < 50 ? 'list' : 'infos'}... {currentPercent.value}%
       </h1>
       <div className="loader-bar-container">
         <div
           className="loader-bar"
           style={{
-            width: `${currentPrecent}%`
+            width: `${currentPercent.value}%`
           }}
         />
       </div>

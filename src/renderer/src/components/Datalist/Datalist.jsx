@@ -1,6 +1,10 @@
 import { memo, useCallback, useEffect, useRef, useState } from 'react'
 
 import './datalist.css'
+import { signal } from '@preact/signals-react'
+
+const input = signal('')
+const activeClassName = signal('')
 
 export const DataList = memo(
   ({
@@ -13,8 +17,6 @@ export const DataList = memo(
     renderItem = undefined,
     onChange = () => {}
   }) => {
-    const [inputValue, setInputValue] = useState('')
-    const [active, setActive] = useState(false)
     const datalistRef = useRef()
 
     useEffect(() => {
@@ -26,27 +28,23 @@ export const DataList = memo(
       selectedCallBack()
     }, [])
     return (
-      <div
-        className={`dropdown-container ${data.length > 20 && 'w30'} ${data.length > 10 && 'w20'} ${
-          active && 'active'
-        }`}
-      >
+      <div className={`dropdown-container ${activeClassName}`}>
         <div className="input-container">
           <input
             onFocus={() => {
               datalistRef.current.style.display = 'grid'
-              setActive(true)
+              activeClassName.value = 'active'
             }}
             onBlur={() => {
               setTimeout(() => {
                 datalistRef.current.style.display = 'none'
-                setActive(false)
+                activeClassName.value = ''
               }, 300)
             }}
-            value={inputValue}
+            value={input}
             onChange={(e) => {
               onChange(e.target.value)
-              setInputValue(e.target.value)
+              input.value = e.target.value
             }}
             autoComplete="off"
             list=""
@@ -63,7 +61,7 @@ export const DataList = memo(
                   key={i}
                   onClick={(e) => onClick(e.target.value)}
                   className={`datalist-item ${
-                    item.toLowerCase().includes(inputValue.toLowerCase()) && 'active'
+                    item.toLowerCase().includes(input.toLowerCase()) && 'active'
                   }`}
                 >
                   {item || item?.[dataKey]}

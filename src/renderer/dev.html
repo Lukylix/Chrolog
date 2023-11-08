@@ -6,8 +6,10 @@
     <!-- https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' localhost:5173; connect-src ws://localhost ws://localhost:5173; style-src 'self' 'unsafe-inline';"
+      content="default-src 'self'; script-src localhost:8097 localhost:5173; connect-src ws://localhost ws://localhost:5173 ws://localhost:8097; style-src 'unsafe-inline';"
     />
+    <!-- React dev tools -->
+    <script src="http://localhost:8097"></script>
   </head>
 
   <body>

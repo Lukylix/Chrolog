@@ -1,13 +1,8 @@
-import { useState, useEffect, useCallback } from 'react'
-import { useDispatch, useSelector } from 'react-redux'
-import { createProject, stopTracking, toggleProject } from '../../stores/trackingData.js'
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { DataList } from '../../components/Datalist/Datalist.jsx'
 import HeaderTracking from '../../components/HeaderTracking/Headertracking.jsx'
-import { ReactComponent as EditIcon } from '../../assets/edit.svg'
 import { ReactComponent as RemoveIcon } from '../../assets/close.svg'
 import { ReactComponent as PowerIcon } from '../../assets/power.svg'
-import { setCurrentProject, setTrackedApps } from '../../stores/tracking.js'
 import './home.css'
 import Loader from '../../components/Loader/Loader.jsx'
 import DatalistProcesses from '../../components/DatalistProcesses/DatalistProcesses.jsx'
@@ -20,41 +15,29 @@ const prettyTime = (ms) => {
   return `${hours ? hours + 'h' : ''} ${minutes ? minutes + 'm' : ''} ${seconds || 0 + 's'}`
 }
 
+import { trackingData, createProject, toggleProject } from '../../signals/trackingData.js'
+import { processes } from '../../signals/processes.js'
+import { lastInputTime, trackedApps, isTracking } from '../../signals/tracking.js'
+import { currentProject } from '../../signals/currentProject.js'
+
+const handleCreateProject = (projectName, associatedApps) => {
+  if (!projectName) return console.error('No project name defined')
+  createProject({
+    projectName,
+    projectData: { toggled: true, apps: associatedApps }
+  })
+}
+
+const removeTrackedApp = (appName) => {
+  trackedApps.value = trackedApps.value.filter((trackedApp) => trackedApp.name !== appName)
+}
+
 const Home = () => {
-  const trackingData = useSelector((state) => state.trackingData)
-  const processes = useSelector((state) => state.processes)
-  const lastInputTime = useSelector((state) => state.tracking.lastInputTime)
-  const trackedApps = useSelector((state) => state.tracking.trackedApps)
-  const currentProject = useSelector((state) => state.tracking.currentProject)
-  const isTracking = useSelector((state) => state.tracking.isTracking)
-  const minLastInputSecs = useSelector((state) => state.settings?.minLastInputSecs)
-
-  const [inputValue, setInputValue] = useState('')
-  const dispatch = useDispatch()
-
-  const handleCreateProject = useCallback((projectName, associatedApps) => {
-    if (!projectName) {
-      // Handle the case where projectName is not defined
-      console.error('No project name defined')
-      return
-    }
-    dispatch(
-      createProject({
-        projectName,
-        projectData: { toggled: true, apps: associatedApps }
-      })
-    )
-  }, [])
-
-  const removeTrackedApp = useCallback((appName) => {
-    dispatch(setTrackedApps(trackedApps.filter((trackedApp) => trackedApp.name !== appName)))
-  }, [])
-
   return (
     <>
       <Loader />
       <div className="container">
-        {processes.length > 0 && (
+        {processes.value.length > 0 && (
           <>
             <HeaderTracking />
             <div className="features">
@@ -63,26 +46,26 @@ const Home = () => {
                   <section className="project-header">
                     <h3>Add Project</h3>
                     <input
-                      onChange={(e) => dispatch(setCurrentProject(e.target.value))}
+                      onChange={(e) => (currentProject.value = e.target.value)}
                       type="text"
                       placeholder="Project Name"
                     />
 
-                    <DatalistProcesses inputValue={inputValue} setInputValue={setInputValue} />
+                    <DatalistProcesses />
                   </section>
                   <button
                     onClick={() => {
-                      if (!currentProject) return alert('Please enter a project name')
-                      if (trackedApps.length === 0) return alert('Please select an app')
-                      handleCreateProject(currentProject, trackedApps)
+                      if (!currentProject.value) return alert('Please enter a project name')
+                      if (trackedApps.value.length === 0) return alert('Please select an app')
+                      handleCreateProject(currentProject.value, trackedApps.value)
                     }}
                   >
                     Create Project
                   </button>
                 </div>
-                {trackedApps?.length > 0 && (
+                {trackedApps.value?.length > 0 && (
                   <div className="app-list">
-                    {trackedApps.map((app, i) => (
+                    {trackedApps.value.map((app, i) => (
                       <span key={i}>
                         {app.name}
                         <RemoveIcon
@@ -97,9 +80,9 @@ const Home = () => {
                 )}
               </div>
 
-              {trackingData &&
-                Object.keys(trackingData).map((projectKey, i) => {
-                  const project = trackingData[projectKey]
+              {trackingData.value &&
+                Object.keys(trackingData.value).map((projectKey, i) => {
+                  const project = trackingData.value[projectKey]
 
                   return (
                     <Link
@@ -111,8 +94,8 @@ const Home = () => {
                         {
                           <span
                             className={`${
-                              (Date.now() - lastInputTime > 5000 && !!project.toggled) ||
-                              !isTracking ||
+                              (Date.now() - lastInputTime.value > 5000 && !!project.toggled) ||
+                              !isTracking.value ||
                               !!!project.toggled
                                 ? 'red-dot'
                                 : 'green-dot'
@@ -132,10 +115,8 @@ const Home = () => {
                           onClick={(e) => {
                             e.preventDefault()
                             e.stopPropagation()
-                            dispatch(toggleProject({ projectName: projectKey }))
-                            if (trackingData[projectKey].toggled) {
-                              dispatch(stopTracking({ projectName: projectKey }))
-                            }
+                            // do only toggle project
+                            toggleProject({ projectName: projectKey })
                           }}
                         />
                       </div>

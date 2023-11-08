@@ -32,7 +32,7 @@ export default defineConfig({
     },
     build: {
       rollupOptions: {
-        external: "sqlite3",
+        external: 'sqlite3'
       }
     },
     plugins: [react(), svgr()],

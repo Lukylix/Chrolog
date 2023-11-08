@@ -172,3 +172,13 @@ button {
 .w-100 {
   width: 100%;
 }
+
+.col-2-auto {
+  display: grid;
+  grid-template-columns: auto auto;
+  align-items: center;
+}
+
+.w-fit-content {
+  width: fit-content;
+}

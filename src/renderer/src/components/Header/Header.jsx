@@ -12,7 +12,7 @@ const Header = memo(() => {
   const minimize = useCallback(() => ipcRenderer.send('minimize-event'), [])
   const maximize = useCallback(() => ipcRenderer.send('maximize-event'), [])
   const close = useCallback(() => ipcRenderer.send('close-event'), [])
-  useTracking(true)
+  useTracking()
 
   return (
     <div className="header">

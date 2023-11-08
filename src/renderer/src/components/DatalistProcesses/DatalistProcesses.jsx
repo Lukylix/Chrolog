@@ -1,43 +1,37 @@
-import { useDispatch, useSelector } from 'react-redux'
-import { setTrackedApps } from '../../stores/tracking'
 import { ReactComponent as RefreshIcon } from '../../assets/refresh.svg'
-import useTracking from '../../hooks/useTracking'
 import { DataList } from '../Datalist/Datalist'
 import './datalistProcesses.css'
-import { addTrackedApp } from '../../stores/tracking'
+import { processes, getProcesses } from '../../signals/processes'
+import { isGettingProcessList, currentPercent, trackedApps } from '../../signals/tracking'
+import { useState } from 'react'
+import { signal } from '@preact/signals-react'
 
-export default function DatalistProcesses({ inputValue, setInputValue }) {
-  const processCount = useSelector((state) => state.tracking.processCount)
-  const currentProcess = useSelector((state) => state.tracking.currentProcess)
-  const completedProcess = useSelector((state) => state.tracking.completedProcess)
-  const isGettingProcessList = useSelector((state) => state.tracking.isGettingProcessList)
-  const currentPrecent = (((currentProcess + completedProcess) / processCount) * 100).toFixed(2)
-  const processes = useSelector((state) => state.processes)
+const addTrackedApp = (app) => {
+  trackedApps.value = [...new Set([...trackedApps.value, app])]
+}
 
-  const { getProcesses } = useTracking()
+const input = signal('')
 
-  const dispatch = useDispatch()
-
+export default function DatalistProcesses() {
   return (
     <div className="d-inline w-100">
       <div className="d-inline processes-datalist">
-        {isGettingProcessList && (
+        {isGettingProcessList.value && (
           <div className="load-processes">
             <div
               className="load-processes-bar"
               style={{
-                width: `${currentPrecent}%`
+                width: `${currentPercent.value}%`
               }}
             />
           </div>
         )}
-
         <DataList
-          data={processes}
+          data={processes.value}
           dataKey="name"
+          onChange={(v) => (input.value = v)}
           placeholder="Select apps to track ..."
-          addSelected={(selected) => dispatch(addTrackedApp(selected))}
-          onChange={setInputValue}
+          addSelected={(selected) => addTrackedApp(selected)}
           renderItem={(process, i, { onClick }) => {
             return (
               <div key={i}>
@@ -45,7 +39,7 @@ export default function DatalistProcesses({ inputValue, setInputValue }) {
                 <option
                   onClick={() => onClick(process)}
                   style={{
-                    display: process.name?.toLowerCase().includes(inputValue.toLowerCase())
+                    display: process.name?.toLowerCase().includes(input.value.toLowerCase())
                       ? 'block'
                       : 'none'
                   }}

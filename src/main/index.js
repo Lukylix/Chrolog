@@ -20,11 +20,6 @@ import {
 } from './utilis/system'
 import Store from 'electron-store'
 import os from 'os'
-import {
-  installExtension,
-  REDUX_DEVTOOLS,
-  REACT_DEVELOPER_TOOLS
-} from 'electron-extension-installer'
 import { existsSync } from 'fs'
 import { createServer as createHttpServer } from 'http'
 
@@ -124,7 +119,8 @@ function createWindow() {
   if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
     mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
   } else {
-    mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
+    if (process.env.NODE_ENV === 'development') join(__dirname, '../rendered/dev.html')
+    else mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
   }
 
   ipcMain.on('save-data', saveDataListener)
@@ -186,11 +182,12 @@ function createWindow() {
             webContents.getAllWebContents().forEach((webContents) => {
               webContents.send('add-tab', parsedBody?.domain)
             })
-
+            console.log('adding ', parsedBody?.domain)
+            const settings = store.get('settings')
             store.set('settings', {
-              ...store.get('settings'),
+              ...settings,
               sitesExclusions: [
-                ...new Set([...store.get('settings')?.sitesExclusions, parsedBody?.domain])
+                ...new Set([...(settings?.sitesExclusions || []), parsedBody?.domain])
               ]
             })
             res.end('ok')
@@ -214,7 +211,8 @@ function createWindow() {
   })
 
   ipcMain.handle('load-settings', () => {
-    return store.get('settings')
+    const settings = store.get('settings')
+    return settings
   })
   ipcMain.on('set-auto-launch', async (event) => {
     if (os.platform() === 'linux') {
@@ -275,15 +273,6 @@ function createWindow() {
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(() => {
-  // Install devtools extensions
-  if (process.env.NODE_ENV === 'development')
-    installExtension([REDUX_DEVTOOLS, REACT_DEVELOPER_TOOLS], {
-      loadExtensionOptions: {
-        allowFileAccess: true
-      }
-    })
-      .then((name) => console.log(`Added Extension:  ${name}`))
-      .catch((err) => console.log('An error occurred: ', err))
   // Set app user model id for windows
   electronApp.setAppUserModelId('Chrolog')
 

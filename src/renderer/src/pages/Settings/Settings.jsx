@@ -1,19 +1,22 @@
-import { useSelector, useDispatch } from 'react-redux'
 import Slider from '../../components/Slider/Slider'
-import {
-  setBrowserProcesses,
-  setExtensionEnabled,
-  setMinLastInputSecs,
-  setMinLogSecs,
-  setSitesExclusions,
-  setStartTrackingAtLaunch
-} from '../../stores/settings'
+
 import HeaderTracking from '../../components/HeaderTracking/Headertracking'
 import Toggle from '../../components/Toggle/Toggle'
 import { useEffect, useState } from 'react'
 import DatalistProcesses from '../../components/DatalistProcesses/DatalistProcesses'
 import { ReactComponent as CloseIcon } from '../../assets/close.svg'
 import './settings.css'
+
+import {
+  minLogSecs,
+  minLastInputSecs,
+  startTrackingAtLaunch,
+  extensionEnabled,
+  browserProcesses,
+  sitesExclusions
+} from '../../signals/settings'
+import { trackedApps } from '../../signals/tracking'
+import { signal } from '@preact/signals-react'
 
 const { ipcRenderer } = window.require('electron')
 
@@ -23,35 +26,25 @@ function convertSecondsToMinutes(seconds) {
 
   return `${minutes}:${remainingSeconds < 10 ? '0' : ''}${remainingSeconds}`
 }
+const siteExclusionInput = signal('')
 
 export default function Settings() {
-  const minLogSecs = useSelector((state) => state.settings.minLogSecs)
-  const minLastInputSecs = useSelector((state) => state.settings.minLastInputSecs)
-  const startTrackingAtLaunch = useSelector((state) => state.settings.startTrackingAtLaunch)
-  const extensionEnabled = useSelector((state) => state.settings.extensionEnabled)
-  const browserProcesses = useSelector((state) => state.settings.browserProcesses)
-  const sitesExclusions = useSelector((state) => state.settings.sitesExclusions)
-  const [browserInputValue, setBrowserInputValue] = useState('')
-  const [siteExclusionInputValue, setSiteExclusionInputValue] = useState('')
-  const trackedApps = useSelector((state) => state.tracking.trackedApps)
-
-  const dispatch = useDispatch()
   useEffect(() => {
     ipcRenderer.send('save-settings', {
-      minLogSecs,
-      minLastInputSecs,
-      startTrackingAtLaunch,
-      extensionEnabled,
-      browserProcesses,
-      sitesExclusions
+      minLogSecs: minLogSecs.value,
+      minLastInputSecs: minLastInputSecs.value,
+      startTrackingAtLaunch: startTrackingAtLaunch.value,
+      extensionEnabled: extensionEnabled.value,
+      browserProcesses: browserProcesses.value,
+      sitesExclusions: sitesExclusions.value
     })
   }, [
-    minLogSecs,
-    minLastInputSecs,
-    startTrackingAtLaunch,
-    extensionEnabled,
-    browserProcesses,
-    sitesExclusions
+    minLogSecs.value,
+    minLastInputSecs.value,
+    startTrackingAtLaunch.value,
+    extensionEnabled.value,
+    browserProcesses.value,
+    sitesExclusions.value
   ])
   return (
     <div className="container">
@@ -71,81 +64,101 @@ export default function Settings() {
 
           <h4>Start tracking a lauch</h4>
           <Toggle
-            toggled={startTrackingAtLaunch}
-            setIsToggled={(value) => dispatch(setStartTrackingAtLaunch(!startTrackingAtLaunch))}
+            toggled={startTrackingAtLaunch.value}
+            setIsToggled={(value) => (startTrackingAtLaunch.value = !startTrackingAtLaunch.value)}
           />
           <h4>Enable extension</h4>
           <Toggle
-            toggled={extensionEnabled}
+            toggled={extensionEnabled.value}
             setIsToggled={(value) => {
-              ipcRenderer.send('toggle-extension', !extensionEnabled)
-              dispatch(setExtensionEnabled(!extensionEnabled))
+              ipcRenderer.send('toggle-extension', !extensionEnabled.value)
+              extensionEnabled.value = !extensionEnabled.value
             }}
           />
           <h4>Browser process</h4>
-          <div className="d-inline">
-            <DatalistProcesses
-              inputValue={browserInputValue}
-              setInputValue={setBrowserInputValue}
-            />
+          <div className="col-2-auto w-fit-content">
+            <DatalistProcesses />
             <button
               style={{ backgroundColor: '#3282F7', margin: '10px 10px 10px 5px' }}
               onClick={() => {
-                dispatch(setBrowserProcesses(trackedApps))
+                browserProcesses.value = trackedApps.value
               }}
             >
               Update
             </button>
           </div>
+          {browserProcesses.value.length > 0 && (
+            <div style={{ marginBottom: '10px' }}>
+              <div className="d-inline">
+                {browserProcesses.value.map((browser) => (
+                  <span key={browser} className="browser-processes">
+                    {browser}
+                    <CloseIcon
+                      fill="white"
+                      height="15px"
+                      className="close-icon"
+                      onClick={() =>
+                        (browserProcesses.value = browserProcesses.value.filter(
+                          (site) => site !== browser
+                        ))
+                      }
+                    />
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
           <h4>Websites exclusion</h4>
-          <div className="d-inline">
+          <div className="col-2-auto w-fit-content">
             <input
-              value={siteExclusionInputValue}
-              onChange={(event) => setSiteExclusionInputValue(event.target.value)}
+              value={siteExclusionInput}
+              onChange={(event) => (siteExclusionInput.value = event.target.value)}
             />
             <button
               style={{ backgroundColor: '#3282F7', margin: '10px' }}
-              onClick={() => {
-                dispatch(
-                  setSitesExclusions([...new Set([...sitesExclusions, siteExclusionInputValue])])
-                )
-              }}
+              onClick={() =>
+                (sitesExclusions.value = [
+                  ...new Set([...sitesExclusions.value, siteExclusionInput])
+                ])
+              }
             >
               Add
             </button>
           </div>
-          <div style={{ marginBottom: '10px' }}>
-            <div className="d-inline">
-              {sitesExclusions.map((siteExclusion) => (
-                <span key={siteExclusion} className="site-exclusion">
-                  {siteExclusion}
-                  <CloseIcon
-                    fill="white"
-                    height="15px"
-                    className="close-icon"
-                    onClick={() =>
-                      dispatch(
-                        setSitesExclusions(sitesExclusions.filter((site) => site !== siteExclusion))
-                      )
-                    }
-                  />
-                </span>
-              ))}
+          {sitesExclusions.value.length > 0 && (
+            <div style={{ marginBottom: '10px' }}>
+              <div className="d-inline">
+                {sitesExclusions.value.map((siteExclusion) => (
+                  <span key={siteExclusion} className="site-exclusion">
+                    {siteExclusion}
+                    <CloseIcon
+                      fill="white"
+                      height="15px"
+                      className="close-icon"
+                      onClick={() =>
+                        (sitesExclusions.value = sitesExclusions.filter(
+                          (site) => site !== siteExclusion
+                        ))
+                      }
+                    />
+                  </span>
+                ))}
+              </div>
             </div>
-          </div>
-          <h4>Minimum time to log {convertSecondsToMinutes(minLogSecs)}</h4>
+          )}
+          <h4>Minimum time to log {convertSecondsToMinutes(minLogSecs.value)}</h4>
           <Slider
             min={0}
             max={10 * 60}
-            value={minLogSecs}
-            onChange={(value) => dispatch(setMinLogSecs(value))}
+            value={minLogSecs.value}
+            onChange={(value) => (minLogSecs.value = value)}
           />
-          <h4>Maximun afk time {convertSecondsToMinutes(minLastInputSecs)}</h4>
+          <h4>Maximun afk time {convertSecondsToMinutes(minLastInputSecs.value)}</h4>
           <Slider
             min={0}
             max={2 * 60}
-            value={minLastInputSecs}
-            onChange={(value) => dispatch(setMinLastInputSecs(value))}
+            value={minLastInputSecs.value}
+            onChange={(value) => (minLastInputSecs.value = value)}
           />
         </div>
       </div>
