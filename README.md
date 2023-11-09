@@ -36,8 +36,6 @@ npm run dev
 
 ### Build
 
-Tested with yarn@1.22.19 and node 14 as ff@lwahonen/ffi-napi is incompatible with more recent node version.
-
 #### For windows :
 
 Ensure that you have the Build Tools for [Microsoft Visual Studio 2022](https://visualstudio.microsoft.com/downloads/) installed.  
