@@ -3,7 +3,6 @@ import { DataList } from '../Datalist/Datalist'
 import './datalistProcesses.css'
 import { processes, getProcesses } from '../../signals/processes'
 import { isGettingProcessList, currentPercent, trackedApps } from '../../signals/tracking'
-import { useState } from 'react'
 import { signal } from '@preact/signals-react'
 
 const addTrackedApp = (app) => {

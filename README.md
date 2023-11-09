@@ -36,13 +36,27 @@ npm run dev
 
 ### Build
 
-To build the project for Windows or Linux, type:
+Tested with yarn@1.22.19 and node 14 as ff@lwahonen/ffi-napi is incompatible with more recent node version.
+
+#### For windows :
+
+Ensure that you have the Build Tools for [Microsoft Visual Studio 2022](https://visualstudio.microsoft.com/downloads/) installed.  
+(Tools for Visual Studio --> Build Tools for Visual Studio 2022)
+
+if you want to recompile the cpp files install [gcc](https://code.visualstudio.com/docs/cpp/config-mingw#_prerequisites) for Visual Studio code.
+
+In Visual Studio Code :  
+`ctrl`+`shift`+`B` To run the chrolog.dll build  
+or  
+Execute command -> Task: run task -> build-dll
+
+Then build the electron app.
 
 ```bash
 npm run build:win
 ```
 
-or
+#### For linux
 
 ```bash
 npm run build:linux

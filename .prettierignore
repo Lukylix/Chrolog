@@ -8,5 +8,3 @@ tsconfig.*.json
 *.sqlite
 node-modules
 .vscode
-.yarn
-.yarnrc.*

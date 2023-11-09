@@ -5,3 +5,5 @@ out
 *.sqlite
 .yarn
 .yarnrc.*
+*.exe
+*.dll

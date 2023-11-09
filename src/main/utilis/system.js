@@ -1,28 +1,12 @@
-import ffi from '@lwahonen/ffi-napi'
-import ref from '@lwahonen/ref-napi'
-import { webContents, nativeImage, app } from 'electron'
-import { timeoutPromise } from './utilis'
-import fs, { write } from 'fs'
+import { webContents, app } from 'electron'
+import fs from 'fs'
 import path from 'path'
 import x11 from 'x11'
 import { exec } from 'child_process'
 import sudo from 'sudo-prompt'
 import Chrolog from 'chrolog-iohook'
 
-const MAX_PATH = 260
-const PROCESS_QUERY_INFORMATION = 0x0400
-const PROCESS_VM_READ = 0x0010
-
-const TH32CS_SNAPPROCESS = 0x00000002
-const PROCESSENTRY32_SIZE = 568
-
-const WH_KEYBOARD_LL = 13
-const WH_MOUSE_LL = 14
-
-let voidPtr = ref.refType(ref.types.void)
-let stringPtr = ref.refType(ref.types.CString)
-
-let kernel32, psapi, user32
+import { load, DataType, open, close, arrayConstructor } from 'ffi-rs'
 
 let lastProcessFetchTime = 0
 let processes = []
@@ -30,26 +14,32 @@ let processesToBeFetched = 0
 let completedProcesses = 0
 
 if (process.platform === 'win32') {
-  kernel32 = new ffi.Library('kernel32', {
-    OpenProcess: ['int32', ['uint32', 'bool', 'uint32']],
-    CloseHandle: ['bool', ['int32']],
-    CreateToolhelp32Snapshot: ['long', ['uint32', 'uint32']],
-    Process32First: ['int32', ['long', 'pointer']],
-    Process32Next: ['int32', ['long', 'pointer']]
-  })
-
-  psapi = new ffi.Library('psapi', {
-    GetModuleFileNameExA: ['uint32', ['int32', 'int32', 'pointer', 'uint32']]
-  })
-
-  user32 = new ffi.Library('user32', {
-    GetForegroundWindow: ['int32', []],
-    GetWindowTextA: ['long', ['long', stringPtr, 'long']],
-    GetWindowThreadProcessId: ['uint32', ['int32', 'pointer']],
-    EnumWindows: ['int', [voidPtr, 'int32']]
-  })
-} else if (process.platform === 'linux') {
+  const appDataPath = app.getPath('appData')
+  let processPath = app.getPath('exe').replace(/(?!\\).[^\\]+\.exe$/gm, '')
+  if (processPath.includes('node_modules'))
+    processPath = processPath.replace(/node_modules.*/gm, '')
+  const chrologPaths = [
+    `${appDataPath}/Chrolog/resources/chrolog.dll`,
+    `${processPath}/resources/app.asar.unpacked/resources/chrolog.dll`,
+    `${processPath}/resources/chrolog.dll`
+  ]
+  let chrologPath = ''
+  for (const path of chrologPaths) {
+    if (fs.existsSync(path)) {
+      chrologPath = path
+      break
+    }
+  }
+  if (chrologPath.length > 0)
+    open({
+      library: 'chrolog',
+      path: chrologPath
+    })
 }
+
+app.on('window-all-closed', () => {
+  close('chrolog')
+})
 
 let lastMouseEventTime = Date.now()
 let lastKeyboardEventTime = Date.now()
@@ -150,23 +140,6 @@ export const hookInputs = async () => {
   else if (process.platform === 'linux') hookInputsLinux()
 }
 
-const getActiveAppListenerWin32 = () => {
-  const hwnd = user32.GetForegroundWindow()
-  const processId = ref.alloc('uint32')
-  user32.GetWindowThreadProcessId(hwnd, processId)
-  const hProcess = kernel32.OpenProcess(PROCESS_QUERY_INFORMATION, false, processId.deref())
-  if (hProcess) {
-    const buffer = Buffer.alloc(MAX_PATH)
-    const size = psapi.GetModuleFileNameExA(hProcess, 0, buffer, MAX_PATH)
-    if (size > 0) {
-      const processName = buffer.toString('utf8', 0, size)
-      kernel32.CloseHandle(hProcess)
-      return processName.split('\\').pop()
-    }
-    kernel32.CloseHandle(hProcess)
-  }
-  return null
-}
 async function getActiveAppGnome() {
   return new Promise((resolve) => {
     try {
@@ -184,7 +157,18 @@ async function getActiveAppGnome() {
   })
 }
 
-const getActiveAppListenerLinux = () => {
+const getActiveAppWin32 = () => {
+  const currentApp = load({
+    library: 'chrolog',
+    funcName: 'GetActiveApp',
+    retType: DataType.String,
+    paramsType: [],
+    paramsValue: []
+  })
+  return currentApp
+}
+
+const getActiveAppLinux = () => {
   return new Promise((resolve) => {
     try {
       x11.createClient((err, display) => {
@@ -244,12 +228,12 @@ const getActiveAppListenerLinux = () => {
 
 export const getActiveAppListener = async () => {
   if (process.platform === 'win32') {
-    return getActiveAppListenerWin32()
+    return getActiveAppWin32()
   } else if (process.platform === 'linux') {
     if (process.env.GNOME_DESKTOP_SESSION_ID) {
       return await getActiveAppGnome()
     } else {
-      return await getActiveAppListenerLinux()
+      return await getActiveAppLinux()
     }
   }
 }
@@ -266,47 +250,37 @@ const processQueueItem = async () => {
   }
 
   isProcessing = true
-  const { processId, snapshot, entry } = processQueue.shift()
-  await getProcessInfos(processId, snapshot, entry)
+  const { processId } = processQueue.shift()
+  await getProcessInfos(processId)
   processQueueItem()
 }
 
-const enqueueProcess = (processId, snapshot, entry) => {
-  processQueue.push({ processId, snapshot, entry })
+const enqueueProcess = (processId) => {
+  processQueue.push({ processId })
   if (!isProcessing) processQueueItem()
 }
 
 const getProcessInfos = async (processId) => {
-  const hProcess = kernel32.OpenProcess(
-    PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,
-    false,
-    processId
-  )
-
-  if (hProcess) {
-    const buffer = Buffer.alloc(MAX_PATH)
-    const size = psapi.GetModuleFileNameExA(hProcess, 0, buffer, MAX_PATH)
-
-    if (size > 0) {
-      const processName = buffer.toString('utf8', 0, size).split('\\').pop()
-      const image = nativeImage.createFromPath(processName)
-      if (!processes.find((p) => p.name === processName)) {
-        processes.push({
-          pid: processId,
-          name: processName,
-          image: image.toDataURL()
-        })
-      }
-    }
-
-    kernel32.CloseHandle(hProcess)
+  if (processId <= 0) return
+  const [process, path] = load({
+    library: 'chrolog',
+    funcName: 'GetProcessInfos',
+    retType: arrayConstructor({ type: DataType.StringArray, length: 2 }),
+    paramsType: [DataType.I32],
+    paramsValue: [processId]
+  })
+  if (!processes.find((p) => p.name === process)) {
+    processes.push({
+      pid: processId,
+      name: process,
+      path: path
+    })
   }
   completedProcesses += 1
   webContents.getAllWebContents().forEach((webContent) => {
     webContent.send('process-completed-event', completedProcesses)
   })
   if (completedProcesses >= processesToBeFetched && completedProcesses > 5) {
-    console.log("Sending 'processes-event' to all renderer processes")
     webContents.getAllWebContents().forEach((webContent) => {
       webContent.send('processes-event', processes)
     })
@@ -314,7 +288,14 @@ const getProcessInfos = async (processId) => {
     processesToBeFetched = 0
     completedProcesses = 0
   }
-  // }
+}
+
+const addProcessToFetch = (pid) => {
+  processesToBeFetched += 1
+  webContents.getAllWebContents().forEach((webContent) => {
+    webContent.send('fetching-process-count', processesToBeFetched)
+  })
+  enqueueProcess(pid)
 }
 
 const getProcessesListenerWindows = async () => {
@@ -322,30 +303,28 @@ const getProcessesListenerWindows = async () => {
   console.log('get-windows-with-icons')
   lastProcessFetchTime = Date.now()
   processes = []
-  const EnumWindowsProc = ffi.Callback('int', ['long', 'int32'], (hwnd) => {
-    let processId = ref.alloc('uint32')
-    user32.GetWindowThreadProcessId(hwnd, processId)
-
-    if (processId.deref() === 0 || !processId.deref()) return 1
-
-    let snapshot = kernel32.CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0)
-    if (!snapshot) return 1
-    let entry = Buffer.alloc(PROCESSENTRY32_SIZE)
-    entry.writeUInt32LE(PROCESSENTRY32_SIZE, 0)
-    if (!entry) return 1
-    if (!kernel32.Process32First(snapshot, entry)) {
-      kernel32.CloseHandle(snapshot)
-      return 1
-    }
-    processesToBeFetched += 1
-    webContents.getAllWebContents().forEach((webContent) => {
-      webContent.send('fetching-process-count', processesToBeFetched)
-    })
-    enqueueProcess(processId.deref())
-    return 1
+  const isSucess = load({
+    library: 'chrolog',
+    funcName: 'EnumWindowsProcessIds',
+    retType: DataType.Boolean,
+    paramsType: [],
+    paramsValue: []
   })
-  await timeoutPromise(2000)
-  user32.EnumWindows(EnumWindowsProc, 0)
+  if (!isSucess) return
+  let pid = 0
+  do {
+    pid = load({
+      library: 'chrolog',
+      funcName: 'GetNextProcessId',
+      retType: DataType.I32,
+      paramsType: [],
+      paramsValue: []
+    })
+    if (pid <= 0) break
+    processCount += 1
+    processes.push(pid)
+    addProcessToFetch(pid)
+  } while (pid > 0)
 }
 
 const getProcessesListenerLinux = async () => {
@@ -382,7 +361,6 @@ const getProcessesListenerLinux = async () => {
       name: process.name
     }
   })
-  console.log("Sending 'processes-event' to all renderer processes")
   webContents.getAllWebContents().forEach((webContent) => {
     webContent.send('processes-event', processes)
   })
@@ -403,14 +381,6 @@ export const getProcessCountListener = async () => {
   if (lastTimeFetchingProcessCount + 1000 > Date.now() || processes.length > 0) return processCount
   if (process.platform === 'linux') {
     processCount = fs.readdirSync('/proc').filter((name) => !isNaN(Number(name))).length
-    return processCount
-  } else if (process.platform === 'win32') {
-    processCount = 0
-    const CountWindowsProc = ffi.Callback('int', ['long', 'int32'], () => {
-      processCount += 1
-      return 1
-    })
-    user32.EnumWindows(CountWindowsProc, 0)
   }
   return processCount
 }
