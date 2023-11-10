@@ -47,11 +47,11 @@ int main()
 
   for (int i = 0; i < 5; i++)
   {
-    int lastInputTime = GetLastInputTime();
+    double lastInputTime = GetLastInputTime();
     std::cout << lastInputTime << std::endl;
     std::this_thread::sleep_for(std::chrono::milliseconds(1000));
   }
-  
+
   std::cout << "Milliseconds since epoch: " << milliseconds << '\n';
   return 0;
   // free the DLL module

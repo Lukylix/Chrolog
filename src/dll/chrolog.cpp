@@ -6,6 +6,7 @@
 #include <vector>
 #include <set>
 #include <chrono>
+#include <thread>
 
 const char *GetActiveApp()
 {
@@ -106,29 +107,84 @@ int GetNextProcessId()
 }
 
 static double lastInputTime = 0;
-static DWORD lastInputTickCount = 0;
 
-void UpdateLastInputTime(DWORD tickCount)
+double GetLastInputTime()
 {
-  if (lastInputTickCount == tickCount)
-    return;
-  if (lastInputTickCount == 0)
-  {
-    lastInputTickCount = tickCount;
-    return;
-  }
+  return lastInputTime;
+}
+
+HHOOK eHook = NULL;
+HHOOK mHook = NULL;
+std::thread thread = std::thread();
+
+LRESULT CALLBACK MouseHookProc(int nCode, WPARAM wparam, LPARAM lparam)
+{
+  LRESULT result = CallNextHookEx(NULL, nCode, wparam, lparam);
+  if (nCode < 0)
+    return result;
   auto now = std::chrono::system_clock::now();
   auto duration = now.time_since_epoch();
   auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
   lastInputTime = static_cast<double>(milliseconds);
-  lastInputTickCount = tickCount;
+  return result;
 }
 
-double GetLastInputTime()
+void SetMouseHook()
 {
-  LASTINPUTINFO lastInputInfo;
-  lastInputInfo.cbSize = sizeof(LASTINPUTINFO);
-  GetLastInputInfo(&lastInputInfo);
-  UpdateLastInputTime(lastInputInfo.dwTime);
-  return lastInputTime;
+  if (mHook != NULL)
+    return;
+  mHook = SetWindowsHookEx(WH_MOUSE_LL, MouseHookProc, GetModuleHandle(NULL), 0);
+}
+
+void UnsetMouseHook()
+{
+  if (mHook == NULL)
+    return;
+  UnhookWindowsHookEx(mHook);
+  mHook = NULL;
+}
+
+void HookThread()
+{
+  SetMouseHook();
+  MSG Msg;
+  while (GetMessage(&Msg, NULL, 0, 0))
+  {
+    TranslateMessage(&Msg);
+    DispatchMessage(&Msg);
+  }
+  UnsetMouseHook();
+}
+
+void CreateHookThread()
+{
+  thread = std::thread(HookThread);
+}
+
+void KillThread()
+{
+  if (thread.joinable())
+  {
+    thread.detach();
+    thread = std::thread();
+  }
+}
+
+BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserved)
+{
+  switch (ul_reason_for_call)
+  {
+  case DLL_PROCESS_ATTACH:
+    CreateHookThread();
+    break;
+  case DLL_THREAD_ATTACH:
+    break;
+  case DLL_THREAD_DETACH:
+    break;
+  case DLL_PROCESS_DETACH:
+    UnsetMouseHook();
+    KillThread();
+    break;
+  }
+  return TRUE;
 }

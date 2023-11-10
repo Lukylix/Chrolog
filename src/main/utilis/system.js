@@ -18,14 +18,15 @@ if (process.platform === 'win32') {
   if (processPath.includes('node_modules'))
     processPath = processPath.replace(/node_modules.*/gm, '')
   const chrologPaths = [
-    `${appDataPath}/Chrolog/resources/chrolog.dll`,
     `${processPath}/resources/app.asar.unpacked/resources/chrolog.dll`,
-    `${processPath}/resources/chrolog.dll`
+    `${processPath}/resources/chrolog.dll`,
+    `${appDataPath}/Chrolog/resources/chrolog.dll`
   ]
   let chrologPath = ''
   for (const path of chrologPaths) {
     if (fs.existsSync(path)) {
       chrologPath = path
+      console.log('chrologPath', chrologPath)
       break
     }
   }
@@ -38,9 +39,10 @@ if (process.platform === 'win32') {
 
 let shouldExit = false
 
-app.on('window-all-closed', () => {
+app.on('before-quit', () => {
   shouldExit = true
   close('chrolog')
+  console.log("I'm exiting")
 })
 
 let lastMouseEventTime = Date.now()
@@ -56,13 +58,7 @@ const hookInputsWin32 = async () => {
         paramsType: [],
         paramsValue: []
       })
-      const currentTime = Date.now()
-      if (
-        lastInputTime + 200 > currentTime ||
-        lastInputTime < 1 ||
-        lastMouseEventTime === lastInputTime
-      )
-        return
+      if (lastInputTime < 1 || lastMouseEventTime === lastInputTime) return
       lastMouseEventTime = lastInputTime
       webContents.getAllWebContents().forEach((webContent) => {
         webContent.send('mouse_event')
@@ -275,7 +271,7 @@ const getProcessInfos = async (processId) => {
     paramsType: [DataType.I32],
     paramsValue: [processId]
   })
-  if (!processes.find((p) => p.name === process)) {
+  if (!processes.find((p) => p.name === process) && process.length > 0) {
     processes.push({
       pid: processId,
       name: process,

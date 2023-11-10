@@ -1,4 +1,4 @@
-const { load, DataType, open, arrayConstructor } = require('ffi-rs')
+const { load, DataType, open, arrayConstructor, close } = require('ffi-rs')
 
 const getProcessInfos = async (processId) => {
   if (processId <= 0) return
@@ -49,7 +49,8 @@ for (let i = 0; i < pids.length; i++) {
   getProcessInfos(pids[i])
 }
 const testLastInputs = async () => {
-  for (let i = 0; i < 100; i++) {
+  const startTime = Date.now()
+  while (Date.now() - startTime < 5000) {
     const lastinputTime = load({
       library: 'chrolog',
       funcName: 'GetLastInputTime',
@@ -59,8 +60,9 @@ const testLastInputs = async () => {
     })
     const lastinputTimeDate = new Date(lastinputTime)
     console.log('lastinputTime', lastinputTimeDate.toLocaleString())
-    await new Promise((resolve) => setTimeout(resolve, 1000))
+    await new Promise((resolve) => setTimeout(resolve, 200))
   }
+  close('chrolog')
 }
 
 testLastInputs()
