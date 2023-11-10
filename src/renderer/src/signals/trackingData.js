@@ -133,6 +133,9 @@ export function updateTrackingData({ trackedAppName, settings }) {
       trackingData.value[projectKey].apps.find((app) => app.name === trackedAppName) &&
       !!trackingData.value[projectKey].toggled
   )
+  if (matchingProjectsKeys.length === 0) {
+    return stopTrackingAll({ settings })
+  }
   let trackingDataCopy = { ...trackingData.value }
   for (const projectName of matchingProjectsKeys) {
     const project = trackingData.value[projectName]
@@ -194,5 +197,6 @@ export function updateTrackingData({ trackedAppName, settings }) {
       startDate: project.startDate || Date.now()
     }
   }
+
   trackingData.value = trackingDataCopy
 }

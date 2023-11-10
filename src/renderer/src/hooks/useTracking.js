@@ -6,7 +6,11 @@ import {
   isLoadingData,
   processCount,
   lastInputTime,
-  currentTab
+  currentTab,
+  completedProcess,
+  currentProcess,
+  isInitialLoad,
+  isTrackingRunning
 } from '../signals/tracking.js'
 import {
   startTrackingAtLaunch,
@@ -21,18 +25,10 @@ import {
 import { getProcesses, processes } from '../signals/processes.js'
 import { trackingData, updateTrackingData, stopTrackingAll } from '../signals/trackingData.js'
 import { effect } from '@preact/signals-react'
-import {
-  completedProcess,
-  currentProcess,
-  isInitialLoad,
-  isTrackingRunning
-} from '../signals/tracking.js'
 
 const { ipcRenderer } = window.require('electron')
 
 let shouldSkipTrack = false
-
-effect(async () => {})
 
 const track = async () => {
   if (!isTracking.value) return
@@ -44,7 +40,6 @@ const track = async () => {
   const isStillInactive = isInactivity && shouldSkipTrack
   shouldSkipTrack = isInactivity
   if (isStillInactive) return
-
   if (isInactivity || (isBrowser && isExcluedSite)) {
     return stopTrackingAll({
       trackedAppName: activeApp,
