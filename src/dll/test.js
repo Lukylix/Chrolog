@@ -48,3 +48,19 @@ console.log('pids.length', pids.length)
 for (let i = 0; i < pids.length; i++) {
   getProcessInfos(pids[i])
 }
+const testLastInputs = async () => {
+  for (let i = 0; i < 100; i++) {
+    const lastinputTime = load({
+      library: 'chrolog',
+      funcName: 'GetLastInputTime',
+      retType: DataType.Double,
+      paramsType: [],
+      paramsValue: []
+    })
+    const lastinputTimeDate = new Date(lastinputTime)
+    console.log('lastinputTime', lastinputTimeDate.toLocaleString())
+    await new Promise((resolve) => setTimeout(resolve, 1000))
+  }
+}
+
+testLastInputs()

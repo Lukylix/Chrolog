@@ -5,6 +5,7 @@
 #include "chrolog.h"
 #include <vector>
 #include <set>
+#include <chrono>
 
 const char *GetActiveApp()
 {
@@ -29,19 +30,6 @@ const char *GetActiveApp()
   strcpy(process, lastPart.c_str());
   return process;
 }
-
-// HICON GetProcessIcon(const char* processPath)
-// {
-//     SHFILEINFO sfi;
-//     if (SHGetFileInfo(processPath, 0, &sfi, sizeof(sfi), SHGFI_ICON | SHGFI_LARGEICON))
-//     {
-//         return sfi.hIcon;
-//     }
-//     else
-//     {
-//         return NULL;
-//     }
-// }
 
 char **GetProcessInfos(int pid)
 {
@@ -115,4 +103,32 @@ int GetNextProcessId()
   int processId = *processIter;
   ++processIter;
   return processId ? processId : 0;
+}
+
+static double lastInputTime = 0;
+static DWORD lastInputTickCount = 0;
+
+void UpdateLastInputTime(DWORD tickCount)
+{
+  if (lastInputTickCount == tickCount)
+    return;
+  if (lastInputTickCount == 0)
+  {
+    lastInputTickCount = tickCount;
+    return;
+  }
+  auto now = std::chrono::system_clock::now();
+  auto duration = now.time_since_epoch();
+  auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
+  lastInputTime = static_cast<double>(milliseconds);
+  lastInputTickCount = tickCount;
+}
+
+double GetLastInputTime()
+{
+  LASTINPUTINFO lastInputInfo;
+  lastInputInfo.cbSize = sizeof(LASTINPUTINFO);
+  GetLastInputInfo(&lastInputInfo);
+  UpdateLastInputTime(lastInputInfo.dwTime);
+  return lastInputTime;
 }

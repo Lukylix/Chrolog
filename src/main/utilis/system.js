@@ -4,7 +4,6 @@ import path from 'path'
 import x11 from 'x11'
 import { exec } from 'child_process'
 import sudo from 'sudo-prompt'
-import Chrolog from 'chrolog-iohook'
 
 import { load, DataType, open, close, arrayConstructor } from 'ffi-rs'
 
@@ -37,33 +36,40 @@ if (process.platform === 'win32') {
     })
 }
 
+let shouldExit = false
+
 app.on('window-all-closed', () => {
+  shouldExit = true
   close('chrolog')
 })
 
 let lastMouseEventTime = Date.now()
-let lastKeyboardEventTime = Date.now()
+// let lastKeyboardEventTime = Date.now()
 
 const hookInputsWin32 = async () => {
-  const instance = new Chrolog()
-
-  instance.setKeyboardCallback(() => {
-    const currentTime = Date.now()
-    if (lastKeyboardEventTime + 200 > currentTime) return
-    lastKeyboardEventTime = currentTime
-    webContents.getAllWebContents().forEach((webContent) => {
-      webContent.send('keyboard_event')
-    })
-  })
-  instance.setMouseCallback(() => {
-    const currentTime = Date.now()
-    if (lastMouseEventTime + 200 > currentTime) return
-    lastMouseEventTime = currentTime
-    webContents.getAllWebContents().forEach((webContent) => {
-      webContent.send('mouse_event')
-    })
-  })
-  instance.log()
+  do {
+    ;(async () => {
+      const lastInputTime = load({
+        library: 'chrolog',
+        funcName: 'GetLastInputTime',
+        retType: DataType.Double,
+        paramsType: [],
+        paramsValue: []
+      })
+      const currentTime = Date.now()
+      if (
+        lastInputTime + 200 > currentTime ||
+        lastInputTime < 1 ||
+        lastMouseEventTime === lastInputTime
+      )
+        return
+      lastMouseEventTime = lastInputTime
+      webContents.getAllWebContents().forEach((webContent) => {
+        webContent.send('mouse_event')
+      })
+    })()
+    await new Promise((resolve) => setTimeout(resolve, 100))
+  } while (!shouldExit)
 }
 
 const hookInputsLinux = async () => {

@@ -5,7 +5,7 @@
 
 int main()
 {
-  HINSTANCE hGetProcIDDLL = LoadLibrary("./chrolog.dll");
+  HINSTANCE hGetProcIDDLL = LoadLibrary("../../resources/chrolog.dll");
 
   if (!hGetProcIDDLL)
   {
@@ -21,6 +21,8 @@ int main()
   GetNextProcessIdPointer GetNextProcessId = reinterpret_cast<GetNextProcessIdPointer>(GetProcAddress(hGetProcIDDLL, "GetNextProcessId"));
   typedef char **(*GetProcessInfosPointer)(int pid);
   GetProcessInfosPointer GetProcessInfos = reinterpret_cast<GetProcessInfosPointer>(GetProcAddress(hGetProcIDDLL, "GetProcessInfos"));
+  typedef int (*GetLastInputTimePointer)();
+  GetLastInputTimePointer GetLastInputTime = reinterpret_cast<GetLastInputTimePointer>(GetProcAddress(hGetProcIDDLL, "GetLastInputTime"));
 
   std::string activeApp = GetActiveApp();
   std::cout << activeApp << std::endl;
@@ -43,6 +45,15 @@ int main()
   char **processInfos = GetProcessInfos(firstid);
   std::cout << processInfos[0] << std::endl;
 
+  for (int i = 0; i < 5; i++)
+  {
+    int lastInputTime = GetLastInputTime();
+    std::cout << lastInputTime << std::endl;
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+  }
+  
+  std::cout << "Milliseconds since epoch: " << milliseconds << '\n';
+  return 0;
   // free the DLL module
   FreeLibrary(hGetProcIDDLL);
   return EXIT_SUCCESS;

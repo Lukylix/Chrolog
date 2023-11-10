@@ -7,3 +7,4 @@ extern "C" __declspec(dllexport) const char *GetActiveApp();
 extern "C" __declspec(dllexport) char **GetProcessInfos(int pid);
 extern "C" __declspec(dllexport) bool EnumWindowsProcessIds();
 extern "C" __declspec(dllexport) int GetNextProcessId();
+extern "C" __declspec(dllexport) double GetLastInputTime();
