@@ -81,7 +81,7 @@ export function stopTrackingAll({ settings }) {
   trackingData.value = Object.keys(trackingData.value).reduce((acc, projectName) => {
     let trackingLogs = []
     let logAsEnded = false
-    for (let log of trackingData.value[projectName]?.trackingLogs) {
+    for (let log of trackingData.value[projectName]?.trackingLogs || []) {
       const endDate = isInactivity ? Date.now() - minLastInputSecs * 1000 : Date.now()
       const elapsedTime = endDate - log.startDate
 
@@ -130,8 +130,9 @@ export function updateTrackingData({ trackedAppName, settings }) {
   const { minLogSecs } = settings
   const matchingProjectsKeys = Object.keys(trackingData.value).filter(
     (projectKey) =>
-      trackingData.value[projectKey].apps.find((app) => app.name === trackedAppName) &&
-      !!trackingData.value[projectKey].toggled
+      trackingData.value[projectKey].apps.find(
+        (app) => app.name.trim() === trackedAppName.trim()
+      ) && !!trackingData.value[projectKey].toggled
   )
   if (matchingProjectsKeys.length === 0) {
     return stopTrackingAll({ settings })

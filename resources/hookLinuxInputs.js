@@ -1,5 +1,6 @@
 import { exec } from 'child_process'
-import ChrologIOhook from 'chrolog-iohook'
+import { open, load, close, DataType } from 'ffi-rs'
+import { fileURLToPath } from 'url'
 import fs from 'fs'
 
 const tempFilePath =
@@ -7,46 +8,62 @@ const tempFilePath =
     process.argv.findIndex((arg, index) => arg === '--tempFile' && process.argv[index + 1]) + 1
   ]
 
-fs.writeFileSync(tempFilePath, '')
+const changeFilePermissions = (filePath) => {
+  exec(`chmod 666 ${filePath}`)
+}
 
-exec(`chmod +rw ${tempFilePath}`, (error) => {
-  if (error) {
-    console.error(error)
-    process.exit(1)
+const createFileIfNotExists = (filePath) => {
+  const folderPath = filePath.replace(/(?!\/).[^\/]+$/gm, '')
+  if (!fs.existsSync(folderPath)) {
+    fs.mkdirSync(folderPath, { recursive: true })
   }
-})
+
+  fs.writeFileSync(tempFilePath, '')
+  changeFilePermissions(tempFilePath)
+}
+
+createFileIfNotExists(tempFilePath)
 
 // Function to send message to the parent process
-function send(message) {
-  fs.writeFileSync(tempFilePath, message)
+const send = (message) => {
+  fs.writeFileSync(tempFilePath, message, { flag: 'r+' })
 }
-console.log('Creating instance...')
 
-const instance = new ChrologIOhook()
-
-console.log('Hooking inputs...')
-
-// Set keyboard callback
-instance.setKeyboardCallback(() => {
-  send('keyboard_event')
+const processPath = fileURLToPath(import.meta.url)
+  .replace(/(?!\/).[^\/]+$/gm, '')
+  .replace(/\/$/, '')
+console.log('processPath', processPath)
+const chrologPath = `${processPath}/chrolog.so`
+open({
+  library: 'chrolog',
+  path: chrologPath
 })
 
-console.log('Hooking mouse...')
-
-instance.setMouseCallback(() => {
-  send('mouse_event')
-})
-
-console.log('Starting logger...')
-
-// Start the logger
-instance.log()
-
-console.log('Inputs hooked')
+let shouldExit = false
 
 // Cleanup the temp file on exit
 process.on('exit', () => {
+  shouldExit = true
   if (fs.existsSync(tempFilePath)) {
     fs.unlinkSync(tempFilePath)
   }
+  close('chrolog')
 })
+
+let lastMouseEventTime = 0
+;(async () => {
+  do {
+    const lastInputTime = load({
+      library: 'chrolog',
+      funcName: 'GetLastInputTime',
+      retType: DataType.Double,
+      paramsType: [],
+      paramsValue: []
+    })
+    if (lastInputTime < 1 || lastMouseEventTime === lastInputTime) continue
+    lastMouseEventTime = lastInputTime
+    send('input_event')
+
+    await new Promise((resolve) => setTimeout(resolve, 100))
+  } while (!shouldExit)
+})()

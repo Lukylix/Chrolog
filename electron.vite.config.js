@@ -8,7 +8,7 @@ export default defineConfig({
     plugins: [externalizeDepsPlugin()],
     build: {
       rollupOptions: {
-        external: ['@lwahonen/ffi-napi', '@lwahonen/ref-napi', 'node-gyp', 'sqlite3']
+        external: ['sqlite3']
       },
       asar: false
     }
@@ -17,9 +17,7 @@ export default defineConfig({
     plugins: [externalizeDepsPlugin()],
     build: {
       rollupOptions: {
-        rollupOptions: {
-          external: ['@lwahonen/ffi-napi', '@lwahonen/ref-napi', 'node-gyp', 'sqlite3']
-        }
+        external: ['sqlite3']
       },
       asar: false
     }
@@ -32,7 +30,7 @@ export default defineConfig({
     },
     build: {
       rollupOptions: {
-        external: 'sqlite3'
+        external: ['sqlite3']
       }
     },
     plugins: [react(), svgr()],

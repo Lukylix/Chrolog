@@ -2,10 +2,21 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "build-dll",
+      "label": "build-lib-win",
       "type": "shell",
       "command": "g++",
-      "args": ["-shared", "-o", "./resources/chrolog.dll", "./src/dll/chrolog.cpp", ],
+      "args": ["-shared", "-o", "./resources/chrolog.dll", "./src/lib/chrolog.cpp", ],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    },
+    {
+      "label": "build-lib-linux",
+      "type": "shell",
+      "command": "g++",
+      "args": ["-shared","-fPIC", "-o", "./resources/chrolog.so", "./src/lib/chrolog.cpp", ],
+      
       "group": {
         "kind": "build",
         "isDefault": true
@@ -15,10 +26,10 @@
       "label": "build-test",
       "type": "shell",
       "command": "g++",
-      "args": ["-o", "./src/dll/test.exe", "./src/dll/test.cpp", ],
+      "args": ["-o", "./src/lib/test", "./src/lib/test.cpp", ],
       "group": {
         "kind": "build",
       }
-    }
+    },
   ]
 }

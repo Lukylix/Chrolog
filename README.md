@@ -46,7 +46,7 @@ if you want to recompile the cpp files install [gcc](https://code.visualstudio.c
 In Visual Studio Code :  
 `ctrl`+`shift`+`B` To run the chrolog.dll build  
 or  
-Execute command -> Task: run task -> build-dll
+Execute command -> Task: run task -> build-lib
 
 Then build the electron app.
 

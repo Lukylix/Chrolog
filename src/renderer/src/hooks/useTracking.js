@@ -97,8 +97,7 @@ const useTracking = () => {
     }
     ipcRenderer.on('processes-event', processesCallback)
     const lastInputTimeCallback = () => (lastInputTime.value = Date.now())
-    ipcRenderer.on('keyboard_event', lastInputTimeCallback)
-    ipcRenderer.on('mouse_event', lastInputTimeCallback)
+    ipcRenderer.on('input_event', lastInputTimeCallback)
     getProcessCount()
     loadData()
     return () => {
@@ -108,14 +107,14 @@ const useTracking = () => {
       ipcRenderer.removeListener('fetching-process-count', fetchingProcessCountCallback)
       ipcRenderer.removeListener('process-completed-event', processCompletedCallback)
       ipcRenderer.removeListener('processes-event', processesCallback)
-      ipcRenderer.removeListener('keyboard_event', lastInputTimeCallback)
-      ipcRenderer.removeListener('mouse_event', lastInputTimeCallback)
+      ipcRenderer.removeListener('input_event', lastInputTimeCallback)
     }
   }, [])
 
   useEffect(() => {
     ;(async () => {
       const settings = await ipcRenderer.invoke('load-settings')
+      if (!settings) return
       setSettings(settings)
       if (startTrackingAtLaunch.value && isFirstSettingsLoad.value && !isTracking.value) {
         isTracking.value = true

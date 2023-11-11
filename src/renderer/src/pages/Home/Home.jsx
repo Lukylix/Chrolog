@@ -16,19 +16,17 @@ const prettyTime = (ms) => {
 
 import { trackingData, createProject, toggleProject } from '../../signals/trackingData.js'
 import { processes } from '../../signals/processes.js'
-import { lastInputTime, trackedApps, isTracking } from '../../signals/tracking.js'
-import { currentProject } from '../../signals/currentProject.js'
+import { lastInputTime, isTracking, trackedApps } from '../../signals/tracking.js'
+import { signal } from '@preact/signals-react'
 
-const handleCreateProject = (projectName, associatedApps) => {
-  if (!projectName) return console.error('No project name defined')
+const projectName = signal('')
+
+const handleCreateProject = () => {
+  if (!projectName.value) return console.error('No project name defined')
   createProject({
-    projectName,
-    projectData: { toggled: true, apps: associatedApps }
+    projectName: projectName.value,
+    projectData: { toggled: true, apps: trackedApps.value }
   })
-}
-
-const removeTrackedApp = (appName) => {
-  trackedApps.value = trackedApps.value.filter((trackedApp) => trackedApp.name !== appName)
 }
 
 const Home = () => {
@@ -45,7 +43,7 @@ const Home = () => {
                   <section className="project-header">
                     <h3>Add Project</h3>
                     <input
-                      onChange={(e) => (currentProject.value = e.target.value)}
+                      onChange={(e) => (projectName.value = e.target.value)}
                       type="text"
                       placeholder="Project Name"
                     />
@@ -54,9 +52,9 @@ const Home = () => {
                   </section>
                   <button
                     onClick={() => {
-                      if (!currentProject.value) return alert('Please enter a project name')
+                      if (!projectName.value) return alert('Please enter a project name')
                       if (trackedApps.value.length === 0) return alert('Please select an app')
-                      handleCreateProject(currentProject.value, trackedApps.value)
+                      handleCreateProject()
                     }}
                   >
                     Create Project

@@ -4,6 +4,7 @@ out
 *.log*
 *.sqlite
 .yarn
-.yarnrc.*
 *.exe
 *.dll
+*.so
+src/lib/test
