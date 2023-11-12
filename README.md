@@ -12,8 +12,8 @@ Visit the [release page](https://github.com/Lukylix/Chrolog/releases) to downloa
 
 # How to Run on Linux
 
-To run Chrolog on Linux, launch it from a terminal  
-(Without launching from a terminal, the necessary sudo prompt will not function correctly).
+To run Chrolog on Linux, launch it from a terminal.  
+Without launching from a terminal, the necessary sudo prompt will not function correctly.
 
 # Development Guidelines
 
@@ -31,6 +31,7 @@ Type these commands in your terminal:
 
 ```bash
 npm install
+npm run m-postinstall
 npm run dev
 ```
 
@@ -44,18 +45,32 @@ Ensure that you have the Build Tools for [Microsoft Visual Studio 2022](https://
 if you want to recompile the cpp files install [gcc](https://code.visualstudio.com/docs/cpp/config-mingw#_prerequisites) for Visual Studio code.
 
 In Visual Studio Code :  
-`ctrl`+`shift`+`B` To run the chrolog.dll build  
+`ctrl`+`shift`+`B` To run the chrolog.dll build (build-lib-win).
 or  
-Execute command -> Task: run task -> build-lib
+Execute command -> Task: run task -> build-lib-win
 
 Then build the electron app.
 
 ```bash
+npm run m-postinstall
 npm run build:win
 ```
 
 #### For linux
 
+Ensure that you have the build-essential to compile the lib and the input server.
+
 ```bash
+sudo apt-get update
+sudo apt-get install build-essential
+```
+
+In Visual Studio Code :  
+`ctrl`+`shift`+`B` To run the chrolog.so and chrolog-server build (build-lib-linux) .
+or  
+Execute command -> Task: run task -> build-lib-linux
+
+```bash
+npm run m-postinstall
 npm run build:linux
 ```
