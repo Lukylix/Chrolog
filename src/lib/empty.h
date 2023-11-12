@@ -1,5 +1,0 @@
-
-extern "C"
-{
-  void test();
-}

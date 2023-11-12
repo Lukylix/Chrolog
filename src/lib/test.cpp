@@ -127,19 +127,13 @@ int main()
   } while (id > 0);
 
   std::cout << firstid << std::endl;
-
   char **processInfos = GetProcessInfos(firstid);
   std::cout << processInfos[0] << std::endl;
   std::cout << processInfos[1] << std::endl;
 
-  for (int i = 0; i < 5; i++)
-  {
-    double lastInputTime = GetLastInputTime();
-    std::cout << lastInputTime << std::endl;
-    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-  }
+  std::this_thread::sleep_for(std::chrono::milliseconds(10000));
 
-  // dlclose(handle);
+  dlclose(handle);
   return EXIT_SUCCESS;
 }
 

@@ -1,8 +1,6 @@
 import { webContents, app } from 'electron'
 import fs from 'fs'
-import path from 'path'
-import { exec } from 'child_process'
-import sudo from 'sudo-prompt'
+import net from 'net'
 
 import { load, DataType, open, close, arrayConstructor } from 'ffi-rs'
 
@@ -11,6 +9,7 @@ let processes = []
 let processesToBeFetched = 0
 let completedProcesses = 0
 let isChrologLoaded = false
+let client
 
 if (process.platform === 'win32') {
   const appDataPath = app.getPath('appData').replace(/\/$/, '')
@@ -69,6 +68,28 @@ if (process.platform === 'win32') {
     console.log('Chrolog lib loaded')
     isChrologLoaded = true
   }
+
+  client = new net.Socket()
+  let isWaitingForConnection = true
+
+  client.on('close', function () {
+    if (isWaitingForConnection) return
+    console.log('Connection closed by server. Retrying in 1 second...')
+  })
+
+  client.once('connect', function () {
+    isWaitingForConnection = false
+    console.log('Connected')
+    client.write('JOIN last-inputs-time')
+  })
+
+  client.on('error', async function (err) {
+    await new Promise((resolve) => setTimeout(resolve, 1000))
+    isWaitingForConnection = true
+    client.connect(9808, '127.0.0.1')
+  })
+
+  client.connect(9808, '127.0.0.1')
 }
 
 let shouldExit = false
@@ -79,8 +100,7 @@ app.on('before-quit', () => {
   console.log("I'm exiting")
 })
 
-let lastMouseEventTime = Date.now()
-// let lastKeyboardEventTime = Date.now()
+let lastEventTime = Date.now()
 
 const hookInputsWin32 = async () => {
   if (!isChrologLoaded) return
@@ -93,8 +113,8 @@ const hookInputsWin32 = async () => {
         paramsType: [],
         paramsValue: []
       })
-      if (lastInputTime < 1 || lastMouseEventTime === lastInputTime) return
-      lastMouseEventTime = lastInputTime
+      if (lastInputTime < 1 || lastEventTime === lastInputTime) return
+      lastEventTime = lastInputTime
       webContents.getAllWebContents().forEach((webContent) => {
         webContent.send('input_event')
       })
@@ -104,64 +124,13 @@ const hookInputsWin32 = async () => {
 }
 
 const hookInputsLinux = async () => {
-  // return
-  const options = {
-    name: 'Chrolog Inputs'
-  }
-
-  exec('which node', (error, stdout, stderr) => {
-    if (error) {
-      console.log(`error: ${error.message}`)
-      return
-    }
-    if (stderr) {
-      console.log(`stderr: ${stderr}`)
-      return
-    }
-
-    const nodePath = stdout.trim()
-    const logPath = path.join(app.getPath('appData'), 'Chrolog/input.log')
-
-    let scriptPath
-    if (process.env.NODE_ENV === 'development')
-      scriptPath = path.join(app.getAppPath(), './resources/hookLinuxInputs.js')
-    else scriptPath = path.join(app.getAppPath(), '../../resources/resources/hookLinuxInputs.js')
-    const tempFilePath = path.join(app.getPath('appData'), 'ipc_temp_file.txt')
-    tempFilePath.replace('/resources/resources', '/resources')
-
-    const command = `${nodePath} "${scriptPath}" -- --log "${logPath}" --tempFile "${tempFilePath}"`
-    sudo.exec(command, options, (error, stdout) => {
-      if (error) {
-        console.log('Error executing child process:', error)
-      } else {
-        console.log('Child process output:', stdout)
-      }
-    })
-
-    fs.writeFileSync(tempFilePath, '')
-    let fileContent = ''
-
-    fs.watchFile(tempFilePath, { persistent: true, interval: 100 }, () => {
-      fs.readFile(tempFilePath, 'utf8', (error, data) => {
-        if (error) {
-          console.log('Error reading file:', error)
-          // Handle the error accordingly
-          return
-        }
-
-        fileContent += data
-        const messages = fileContent.split('\n')
-
-        const trimmedMessage = messages[messages.length - 1].trim()
-
-        if (trimmedMessage.includes('input_event')) {
-          webContents.getAllWebContents().forEach((webContent) => {
-            webContent.send('input_event')
-          })
-        }
-
-        fileContent = ''
-      })
+  if (!isChrologLoaded) return
+  client.on('data', function (data) {
+    const lastInputTimeInt = parseInt(data.toString() || 0)
+    if (lastInputTimeInt < 1 || lastEventTime === lastInputTimeInt) return
+    lastEventTime = lastInputTimeInt
+    webContents.getAllWebContents().forEach((webContent) => {
+      webContent.send('input_event')
     })
   })
 }
@@ -186,8 +155,6 @@ const getActiveApp = () => {
 export const getActiveAppListener = async () => {
   return getActiveApp()
 }
-
-// ...
 
 let processQueue = []
 let isProcessing = false

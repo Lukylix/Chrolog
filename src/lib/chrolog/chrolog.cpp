@@ -11,6 +11,9 @@
 #include <fcntl.h>
 #include <linux/input.h>
 #include <mutex>
+#include <dlfcn.h>
+#include <filesystem>
+#include <sys/wait.h>
 
 #endif
 
@@ -171,7 +174,7 @@ void HookThread()
   UnsetMouseHook();
 }
 
-void CreateHookThread()
+void CreateHookThreads()
 {
   thread = std::thread(HookThread);
 }
@@ -189,7 +192,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
   switch (ul_reason_for_call)
   {
   case DLL_PROCESS_ATTACH:
-    CreateHookThread();
+    CreateHookThreads();
     break;
   case DLL_THREAD_ATTACH:
     break;
@@ -210,8 +213,6 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
 static bool isGonome = false;
 static std::set<int> g_processIds;
 static std::set<int>::iterator processIter;
-std::mutex lastInputTimeMutex;
-static double lastInputTime = 0;
 static bool shouldExit = false;
 
 std::string trim(const std::string &str)
@@ -223,6 +224,14 @@ std::string trim(const std::string &str)
   }
   size_t last = str.find_last_not_of(' ');
   return str.substr(first, (last - first + 1));
+}
+
+std::string getLibraryPath()
+{
+  Dl_info dl_info;
+  dladdr((void *)getLibraryPath, &dl_info);
+  std::filesystem::path libPath(dl_info.dli_fname);
+  return libPath.parent_path();
 }
 
 std::string exec(std::string cmd)
@@ -362,107 +371,37 @@ int GetNextProcessId()
   return processId ? processId : 0;
 }
 
-double GetLastInputTime()
+pid_t child_pid;
+
+void sendSiginalToChild(int sig)
 {
-  return lastInputTime;
-}
-
-std::set<std::string> GetInputDevices()
-{
-  std::set<std::string> devices;
-  std::string cmd = "ls /dev/input/by-id/";
-  std::string result = exec(cmd.c_str());
-  std::string resultTrimmed = trim(result);
-  if (resultTrimmed.empty())
+  if (child_pid && child_pid != 0)
   {
-    return devices;
+    kill(child_pid, sig);
   }
-  std::string delimiter = "\n";
-  size_t pos = 0;
-  std::string token;
-  while ((pos = resultTrimmed.find(delimiter)) != std::string::npos)
-  {
-    token = resultTrimmed.substr(0, pos);
-    std::string device = trim(token);
-    devices.insert(device);
-    resultTrimmed.erase(0, pos + delimiter.length());
-  }
-  return devices;
-}
-
-std::vector<std::thread> threads;
-
-void watchInputTread(std::string device)
-{
-  std::string file = "/dev/input/by-id/" + device;
-  int fd = open(file.c_str(), O_RDONLY);
-  if (fd < 0)
-  {
-    std::cerr << "Failed to open device\n";
-    return;
-  }
-
-  char dummy[sizeof(struct input_event)];
-  while (read(fd, &dummy, sizeof(dummy)) > 0 && !shouldExit)
-  {
-    // std::cout << "input event" << std::endl;
-    std::chrono::time_point<std::chrono::system_clock> now = std::chrono::system_clock::now();
-    std::chrono::system_clock::duration duration = now.time_since_epoch();
-    long long milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
-    lastInputTimeMutex.lock();
-    lastInputTime = static_cast<double>(milliseconds);
-    lastInputTimeMutex.unlock();
-  }
-
-  close(fd);
-  std::cout << "exiting thread for device: " << device << std::endl;
-}
-
-void CreateHookThread()
-{
-  std::set<std::string> inputsDevices = GetInputDevices();
-  // iterate over all input devices and check if keyboard or mouse
-  for (auto it = inputsDevices.begin(); it != inputsDevices.end(); ++it)
-  {
-    std::string device = *it;
-    std::cout << "device: " << device << std::endl;
-    // include mouse and keyboard
-    bool isMouse = device.find("mouse") != std::string::npos;
-    bool isKeyboard = device.find("keyboard") != std::string::npos;
-    if (isMouse || isKeyboard)
-    {
-      threads.push_back(std::thread(watchInputTread, device));
-    }
-  }
-}
-
-void KillThreads()
-{
-  for (auto it = threads.begin(); it != threads.end(); ++it)
-  {
-    std::thread &thread = *it;
-    if (thread.joinable())
-    {
-      thread.detach();
-    }
-  }
-}
-
-void destroy()
-{
-  shouldExit = true;
-  KillThreads();
 }
 
 void initialize()
 {
-  char *desktopSession = getenv("DESKTOP_SESSION");
-  if (desktopSession != NULL && strcmp(desktopSession, "gnome") == 0)
+  std::string cmd = "'" + getLibraryPath() + "/chrolog-server" + "'";
+  std::string cmdSudo = "/usr/bin/pkexec " + cmd + " &";
+  pid_t pid = fork();
+  if (pid == 0)
   {
-    isGonome = true;
+    execl("/bin/sh", "sh", "-c", cmdSudo.c_str(), (char *)NULL);
   }
-  if (geteuid() == 0)
-    CreateHookThread();
+  else
+  {
+    child_pid = pid;
+    signal(SIGINT, sendSiginalToChild);
+    signal(SIGTERM, sendSiginalToChild);
+    signal(SIGKILL, sendSiginalToChild);
+    signal(SIGQUIT, sendSiginalToChild);
+  }
+}
+void destroy()
+{
+  shouldExit = true;
 }
 
 void __attribute__((constructor)) initialize();

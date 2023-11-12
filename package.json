@@ -16,7 +16,8 @@
     "build:mac": " npm run build && electron-builder --mac --config",
     "build:linux": " npm run build && electron-builder --linux --config",
     "react-devtools": "react-devtools",
-    "test-lib": "cross-env NODE_PATH=./node_modules sudo node ./src/lib/test.js"
+    "test-lib": "cross-env NODE_PATH=./node_modules sudo node ./src/lib/test.js",
+    "test-server": "node ./src/lib/chrolog-server/test-server.js"
   },
   "electronWebpack": {
     "skipPackage": true,
@@ -40,10 +41,8 @@
     "recharts": "^2.9.3",
     "socket.io": "^4.7.2",
     "sqlite3": "^5.1.6",
-    "sudo-prompt": "^9.2.1",
     "url": "^0.11.3",
-    "util": "^0.12.5",
-    "x11": "^2.3.0"
+    "util": "^0.12.5"
   },
   "devDependencies": {
     "@electron/rebuild": "^3.3.0",

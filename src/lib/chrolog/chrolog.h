@@ -19,7 +19,6 @@ extern "C"
   bool EnumWindowsProcessIds();
   int GetNextProcessId();
   char **GetProcessInfos(int pid);
-  double GetLastInputTime();
 }
 
 #endif

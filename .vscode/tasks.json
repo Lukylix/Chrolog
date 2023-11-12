@@ -5,7 +5,7 @@
       "label": "build-lib-win",
       "type": "shell",
       "command": "g++",
-      "args": ["-shared", "-o", "./resources/chrolog.dll", "./src/lib/chrolog.cpp", ],
+      "args": ["-shared", "-o", "./resources/chrolog.dll", "./src/lib/chrolog/chrolog.cpp"],
       "group": {
         "kind": "build",
         "isDefault": true
@@ -15,8 +15,18 @@
       "label": "build-lib-linux",
       "type": "shell",
       "command": "g++",
-      "args": ["-shared","-fPIC", "-o", "./resources/chrolog.so", "./src/lib/chrolog.cpp", ],
-      
+      "args": [
+        "-shared",
+        "-fPIC",
+        "-o",
+        "./resources/chrolog.so",
+        "./src/lib//chrolog/chrolog.cpp",
+        "&&",
+        "g++",
+        "-o",
+        "./resources/chrolog-server",
+        "./src/lib/chrolog-server/chrolog-server.cpp"
+      ],
       "group": {
         "kind": "build",
         "isDefault": true
@@ -26,10 +36,10 @@
       "label": "build-test",
       "type": "shell",
       "command": "g++",
-      "args": ["-o", "./src/lib/test", "./src/lib/test.cpp", ],
+      "args": ["-o", "./src/lib/test", "./src/lib/test.cpp"],
       "group": {
-        "kind": "build",
+        "kind": "build"
       }
-    },
+    }
   ]
 }

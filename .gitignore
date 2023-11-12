@@ -8,3 +8,4 @@ out
 *.dll
 *.so
 src/lib/test
+resources/chrolog-server

@@ -7,4 +7,3 @@ tsconfig.json
 tsconfig.*.json
 *.sqlite
 node-modules
-.vscode

@@ -3436,11 +3436,9 @@ __metadata:
     recharts: "npm:^2.9.3"
     socket.io: "npm:^4.7.2"
     sqlite3: "npm:^5.1.6"
-    sudo-prompt: "npm:^9.2.1"
     url: "npm:^0.11.3"
     util: "npm:^0.12.5"
     vite: "npm:^4.5.0"
-    x11: "npm:^2.3.0"
   languageName: unknown
   linkType: soft
 
@@ -6580,13 +6578,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"os-homedir@npm:^1.0.1":
-  version: 1.0.2
-  resolution: "os-homedir@npm:1.0.2"
-  checksum: 6be4aa67317ee247b8d46142e243fb4ef1d2d65d3067f54bfc5079257a2f4d4d76b2da78cba7af3cb3f56dbb2e4202e0c47f26171d11ca1ed4008d842c90363f
-  languageName: node
-  linkType: hard
-
 "os@npm:^0.1.2":
   version: 0.1.2
   resolution: "os@npm:0.1.2"
@@ -7795,13 +7786,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"sudo-prompt@npm:^9.2.1":
-  version: 9.2.1
-  resolution: "sudo-prompt@npm:9.2.1"
-  checksum: e56793513a9c95f66367a3be2ec4c1adee84a2a62f1b7ff6453d610586dcd373d7d8f4df522a7dae03aea8b779ef7f7ba25d1130d24fb1e495cfbbc2c72c7486
-  languageName: node
-  linkType: hard
-
 "sumchecker@npm:^3.0.1":
   version: 3.0.1
   resolution: "sumchecker@npm:3.0.1"
@@ -8480,15 +8464,6 @@ __metadata:
     utf-8-validate:
       optional: true
   checksum: b672b312f357afba8568b9dbb9e08b9e8a20845659b35fa6b340dc848efe371379f5e22bb1dc89c4b2940d5e2dc52dd1de85dde41776875fce115a448f94754f
-  languageName: node
-  linkType: hard
-
-"x11@npm:^2.3.0":
-  version: 2.3.0
-  resolution: "x11@npm:2.3.0"
-  dependencies:
-    os-homedir: "npm:^1.0.1"
-  checksum: 0b212bcbe8ffdbd7a04d9b897afd8c5d61fd7e3eb29315e21d9d05af78c1a86c3b998965a23d1d8e4fcf22027484fbe35ad456be06aab1402045bb9aa545ab3a
   languageName: node
   linkType: hard
 

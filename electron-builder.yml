@@ -60,6 +60,8 @@ deb:
     - libnss3
 appImage:
   artifactName: ${name}-${version}.${ext}
+  desktop:
+    Terminal: true
 
 npmRebuild: false
 # publish:
