@@ -5,14 +5,7 @@ import { ReactComponent as PowerIcon } from '../../assets/power.svg'
 import './home.css'
 import Loader from '../../components/Loader/Loader.jsx'
 import DatalistProcesses from '../../components/DatalistProcesses/DatalistProcesses.jsx'
-
-const prettyTime = (ms) => {
-  const s = Math.floor(ms / 1000)
-  const hours = Math.floor(s / 3600)
-  const minutes = Math.floor((s - hours * 3600) / 60)
-  const seconds = parseInt(s - hours * 3600 - minutes * 60)
-  return `${hours ? hours + 'h' : ''} ${minutes ? minutes + 'm' : ''} ${seconds || 0 + 's'}`
-}
+import { prettyTime } from '../../utlis/prettyTime'
 
 import { trackingData, createProject, toggleProject } from '../../signals/trackingData.js'
 import { processes } from '../../signals/processes.js'
@@ -29,6 +22,10 @@ const handleCreateProject = () => {
   })
 }
 
+const removeTrackedApp = (appName) => {
+  trackedApps.value = trackedApps.value.filter((app) => app.name !== appName)
+}
+
 const Home = () => {
   return (
     <>
@@ -41,7 +38,6 @@ const Home = () => {
               <div className="feature-item ">
                 <div className="project-settings">
                   <section className="project-header">
-                    <h3>Add Project</h3>
                     <input
                       onChange={(e) => (projectName.value = e.target.value)}
                       type="text"
@@ -77,35 +73,35 @@ const Home = () => {
                 )}
               </div>
 
-              {trackingData.value &&
-                Object.keys(trackingData.value).map((projectKey, i) => {
-                  const project = trackingData.value[projectKey]
+              {trackingData.value && (
+                <div className="project-container features">
+                  {Object.keys(trackingData.value).map((projectKey, i) => {
+                    const project = trackingData.value[projectKey]
 
-                  return (
-                    <Link
-                      to={`/project/${projectKey}`}
-                      key={i}
-                      className="feature-item project-line"
-                    >
-                      <h3 className="ellipsis">
-                        {
-                          <span
-                            className={`${
-                              (Date.now() - lastInputTime.value > 5000 && !!project.toggled) ||
-                              !isTracking.value ||
-                              !!!project.toggled
-                                ? 'red-dot'
-                                : 'green-dot'
-                            }`}
-                          ></span>
-                        }
-                        {`${projectKey} - ${prettyTime(project.elapsedTime)}`}
-                      </h3>
-                      <div className="project">
-                        <p className="ellipsis">
-                          {project?.apps?.map((app) => app.name).join(', ') || ''}
-                        </p>
-
+                    return (
+                      <Link
+                        to={`/project/${projectKey}`}
+                        key={i}
+                        className="feature-item project-line"
+                      >
+                        <h3 className="ellipsis">
+                          {
+                            <span
+                              className={`${
+                                (Date.now() - lastInputTime.value > 5000 && !!project.toggled) ||
+                                !isTracking.value ||
+                                !!!project.toggled
+                                  ? 'red-dot'
+                                  : 'green-dot'
+                              }`}
+                            ></span>
+                          }
+                          {`${projectKey} - ${prettyTime(project.elapsedTime)}`}
+                        </h3>
+                        {/* <div className="project-detail">
+                          <p className="ellipsis">
+                            {project?.apps?.map((app) => app.name).join(', ') || ''}
+                          </p> */}
                         <PowerIcon
                           fill={project.toggled ? '#1AA68A' : '#FF6347'}
                           height="30px"
@@ -116,10 +112,12 @@ const Home = () => {
                             toggleProject({ projectName: projectKey })
                           }}
                         />
-                      </div>
-                    </Link>
-                  )
-                })}
+                        {/* </div> */}
+                      </Link>
+                    )
+                  })}
+                </div>
+              )}
             </div>
           </>
         )}

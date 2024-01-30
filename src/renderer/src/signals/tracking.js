@@ -23,6 +23,15 @@ export const currentPeriod = signal({
   end: endDay.getTime()
 })
 
+export const currentPeriodYear = computed(() => {
+  const { start, end } = currentPeriod.value
+  const startDate = new Date(start)
+  const endDate = new Date(end)
+  return startDate.getFullYear() === endDate.getFullYear()
+    ? startDate.getFullYear()
+    : `${startDate.getFullYear()} - ${endDate.getFullYear()}`
+})
+
 export const currentPercent = computed(() =>
   (((currentProcess.value + completedProcess.value) / processCount) * 100).toFixed(2)
 )

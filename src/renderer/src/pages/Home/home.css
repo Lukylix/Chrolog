@@ -6,7 +6,7 @@
 
 .project-header {
   display: inline-grid;
-  grid-template-columns: auto 1fr 2fr;
+  grid-template-columns: 1fr 1fr;
   gap: 10px;
   align-items: center;
   justify-content: center;
@@ -23,6 +23,15 @@
 
 .project-header button {
   justify-self: end;
+}
+
+.project-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
 }
 
 .app-item {
@@ -43,7 +52,7 @@ section.header {
 
 .project-line {
   display: grid;
-  grid-template-columns: auto 1fr;
+  grid-template-columns: 1fr auto;
   align-items: center;
   gap: 20px;
 }
@@ -54,13 +63,15 @@ section.header {
   display: inline-block;
   vertical-align: middle;
 }
-.project {
+.project-detail {
   display: grid;
   grid-template-columns: 1fr auto;
   gap: 20px;
+  font-weight: normal;
+  font-size: 0.9em;
 }
 
-.project > * {
+.project-detail > * {
   align-self: center;
 }
 

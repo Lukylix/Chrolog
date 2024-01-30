@@ -3,7 +3,7 @@ const { open, load, close, DataType } = require('ffi-rs')
 
 open({
   library: 'chrolog',
-  path: `${__dirname}/../../../resources/chrolog.so`
+  path: `${import.meta.url}/../../../resources/chrolog.so`
 })
 
 function getActiveApp() {

@@ -10,7 +10,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <linux/input.h>
-#include <mutex>
+
 #include <dlfcn.h>
 #include <filesystem>
 #include <sys/wait.h>
@@ -24,6 +24,7 @@
 #include <set>
 #include <chrono>
 #include <thread>
+#include <mutex>
 
 #ifdef _WIN32
 const char *GetActiveApp()
@@ -124,14 +125,18 @@ int GetNextProcessId()
   return processId ? processId : 0;
 }
 
+std::mutex lastInputTimeMutex;
 static double lastInputTime = 0;
 
 double GetLastInputTime()
 {
-  return lastInputTime;
+  lastInputTimeMutex.lock();
+  double lastInputTimeCopy = lastInputTime;
+  lastInputTimeMutex.unlock();
+  return lastInputTimeCopy;
 }
 
-HHOOK eHook = NULL;
+HHOOK kHook = NULL;
 HHOOK mHook = NULL;
 std::thread thread = std::thread();
 
@@ -143,8 +148,39 @@ LRESULT CALLBACK MouseHookProc(int nCode, WPARAM wparam, LPARAM lparam)
   auto now = std::chrono::system_clock::now();
   auto duration = now.time_since_epoch();
   auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
+  lastInputTimeMutex.lock();
   lastInputTime = static_cast<double>(milliseconds);
+  lastInputTimeMutex.unlock();
   return result;
+}
+
+LRESULT CALLBACK KeyboardHookProc(int nCode, WPARAM wparam, LPARAM lparam)
+{
+  LRESULT result = CallNextHookEx(NULL, nCode, wparam, lparam);
+  if (nCode < 0)
+    return result;
+  auto now = std::chrono::system_clock::now();
+  auto duration = now.time_since_epoch();
+  auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
+  lastInputTimeMutex.lock();
+  lastInputTime = static_cast<double>(milliseconds);
+  lastInputTimeMutex.unlock();
+  return result;
+}
+
+void SetKeyboardHook()
+{
+  if (kHook != NULL)
+    return;
+  kHook = SetWindowsHookEx(WH_KEYBOARD_LL, KeyboardHookProc, GetModuleHandle(NULL), 0);
+}
+
+void UnsetKeyboardHook()
+{
+  if (kHook == NULL)
+    return;
+  UnhookWindowsHookEx(kHook);
+  kHook = NULL;
 }
 
 void SetMouseHook()
@@ -165,6 +201,7 @@ void UnsetMouseHook()
 void HookThread()
 {
   SetMouseHook();
+  SetKeyboardHook();
   MSG Msg;
   while (GetMessage(&Msg, NULL, 0, 0))
   {
@@ -172,6 +209,7 @@ void HookThread()
     DispatchMessage(&Msg);
   }
   UnsetMouseHook();
+  UnsetKeyboardHook();
 }
 
 void CreateHookThreads()
@@ -200,6 +238,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
     break;
   case DLL_PROCESS_DETACH:
     UnsetMouseHook();
+    UnsetKeyboardHook();
     KillThread();
     break;
   }

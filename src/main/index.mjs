@@ -22,6 +22,7 @@ import Store from 'electron-store'
 import os from 'os'
 import { existsSync } from 'fs'
 import { createServer as createHttpServer } from 'http'
+import { URL } from 'url'
 
 let startMinimized = (process.argv || []).indexOf('--hidden') !== -1
 
@@ -31,8 +32,9 @@ let tray = null
 
 function createWindow() {
   let icon
-  if (os.platform() === 'win32') icon = join(__dirname, '../../build/icon256.ico')
-  else if (os.platform() === 'linux') icon = join(__dirname, '../../build/icon512.png')
+  if (os.platform() === 'win32') icon = new URL('../../build/icon256.ico', import.meta.url)
+  else if (os.platform() === 'linux') icon = new URL('../../build/icon512.png', import.meta.url)
+  console.log('icon', icon.href)
   const mainWindow = new BrowserWindow({
     width: 900,
     height: 670,
@@ -40,9 +42,9 @@ function createWindow() {
     autoHideMenuBar: true,
     frame: false,
     titleBarStyle: 'hidden',
-    icon,
+    icon: icon.href,
     webPreferences: {
-      preload: join(__dirname, '../preload/index.js'),
+      preload: new URL('../preload/index.mjs', import.meta.url),
       sandbox: false,
       nodeIntegration: true,
       contextIsolation: false,
@@ -68,10 +70,9 @@ function createWindow() {
     for (const path of paths) {
       try {
         if (existsSync(join(app.getAppPath(), path))) {
-          console.log(join(__dirname, path), ' icon found')
+          console.log(new URL(path, import.meta.url).href, ' icon found.')
           const nativeImageIcon = nativeImage.createFromPath(join(app.getAppPath(), path))
           let appIcon = new Tray(nativeImageIcon)
-
           const contextMenu = Menu.buildFromTemplate([
             {
               label: 'Show',
@@ -119,8 +120,9 @@ function createWindow() {
   if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
     mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
   } else {
-    if (process.env.NODE_ENV === 'development') join(__dirname, '../rendered/dev.html')
-    else mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
+    const fileToLoad = process.env.NODE_ENV != 'development' ? 'index.html' : 'dev.html'
+    const realtivePathToload = `out/renderer/${fileToLoad}`
+    mainWindow.loadFile(realtivePathToload)
   }
 
   ipcMain.on('save-data', saveDataListener)

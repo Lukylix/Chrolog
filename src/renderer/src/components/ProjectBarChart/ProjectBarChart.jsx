@@ -4,28 +4,13 @@ import Select from 'react-select'
 import { ReactComponent as ChevronRight } from '../../assets/chevron_right.svg'
 import { ReactComponent as ChevronLeft } from '../../assets/chevron_left.svg'
 
-import { trackedApps, appsColorMap } from '../../signals/currentProject'
+import { appsColorMap } from '../../signals/currentProject'
+import { currentPeriod, currentPeriodYear } from '../../signals/tracking'
+import { period, dataChart, currentChartTrackedApps } from '../../signals/projectChart'
 
-import { currentPeriod } from '../../signals/tracking'
-
-import { period, dataChart } from '../../signals/projectChart'
+import { prettyTime, prettyTimeHoursMins } from '../../utlis/prettyTime'
 
 import './projectBarChart.css'
-
-const prettyTime = (ms) => {
-  const s = Math.floor(parseInt(ms) / 1000)
-  const hours = Math.floor(s / 3600)
-  const minutes = Math.floor((s - hours * 3600) / 60)
-  const seconds = parseInt(s - hours * 3600 - minutes * 60)
-  return `${hours ? hours + 'h' : ''} ${minutes ? minutes + 'm' : ''} ${seconds || 0 + 's'}`
-}
-
-const prettyTimeHoursMins = (ms) => {
-  const s = Math.floor(parseInt(ms) / 1000)
-  const hours = Math.floor(s / 3600)
-  const minutes = Math.floor((s - hours * 3600) / 60)
-  return `${hours ? hours + 'h' : ''} ${minutes ? minutes + 'm' : ''}`
-}
 
 const periods = ['week', 'month', 'year']
 
@@ -95,7 +80,11 @@ const ProjectBarCharts = memo(() => {
     }
   }, [])
   return (
-    <>
+    <div className="feature-item grid-fill">
+      <h2 className="graph-year">
+        {/*Signal Optimization */}
+        <>{currentPeriodYear}</>
+      </h2>
       <div className="chart-controls">
         <ChevronLeft fill="white" onClick={prevChart} />
         <Select
@@ -103,14 +92,14 @@ const ProjectBarCharts = memo(() => {
           classNamePrefix="react-select"
           unstyled
           isSearchable={false}
-          placeholder="Period"
           data={periods}
+          defaultValue={{ label: period.value, value: period.value }}
           onChange={(val) => (period.value = val.value)}
           options={periods.map((val) => ({ label: val, value: val }))}
         />
         <ChevronRight fill="white" onClick={nextChart} />
       </div>
-      <ResponsiveContainer width="100%" height={300}>
+      <ResponsiveContainer width="100%" aspect={2.5}>
         <BarChart
           width={500}
           height={300}
@@ -128,7 +117,7 @@ const ProjectBarCharts = memo(() => {
             cursor={{ fill: '#282c34' }}
           />
           <Legend />
-          {trackedApps.value.map((app, i) => (
+          {currentChartTrackedApps.value.map((app, i) => (
             <Bar
               sty
               key={i}
@@ -139,7 +128,7 @@ const ProjectBarCharts = memo(() => {
           ))}
         </BarChart>
       </ResponsiveContainer>
-    </>
+    </div>
   )
 })
 export default ProjectBarCharts

@@ -17,3 +17,16 @@
   max-height: 35px;
   max-width: 200px;
 }
+
+.settings {
+  margin-top: 15px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.setting-group {
+  border-radius: 10px;
+  padding: 10px 10px 0 10px;
+  border: 1px solid #ccc;
+}

@@ -16,16 +16,15 @@ import './project.css'
 import Loader from '../../components/Loader/Loader.jsx'
 const { ipcRenderer } = window.require('electron')
 
-import { lastInputTime, currentPeriod, trackedApps, isTracking } from '../../signals/tracking.js'
 import {
-  trackingData,
-  removeTrackedApp,
-  addTrackedApp,
-  removeTrackingLog
-} from '../../signals/trackingData.js'
+  lastInputTime,
+  trackedApps,
+  isTracking,
+  currentPeriodYear
+} from '../../signals/tracking.js'
+import { removeTrackedApp, addTrackedApp, removeTrackingLog } from '../../signals/trackingData.js'
 import { toggleProject } from '../../signals/trackingData.js'
 import {
-  trackingLogsSortedFiltered,
   filters,
   currentProject,
   appsColorMap,
@@ -37,13 +36,8 @@ import {
   filter
 } from '../../signals/currentProject.js'
 import { processes } from '../../signals/processes.js'
-const prettyTime = (ms) => {
-  const s = Math.floor(ms / 1000)
-  const hours = Math.floor(s / 3600)
-  const minutes = Math.floor((s - hours * 3600) / 60)
-  const seconds = parseInt(s - hours * 3600 - minutes * 60)
-  return `${hours ? hours + 'h' : ''} ${minutes ? minutes + 'm' : ''} ${seconds || 0 + 's'}`
-}
+
+import { prettyTime } from '../../utlis/prettyTime.js'
 const convertDate = (date) => {
   let d
   if (typeof date === 'string') d = new Date(parseInt(date))
@@ -111,7 +105,6 @@ const ProjectLine = memo(() => {
 })
 
 const ProjectSettings = memo(({}) => {
-  const { name } = useParams()
   return (
     <div className="project-settings project-settings-track">
       <DataListProcesses />
@@ -250,40 +243,52 @@ const removeTrackingLogCallback = (trackingLog) => {
   ipcRenderer.send('delete-tracking-log', { ...trackingLog, projectName: currentProjectName })
 }
 
+const Pagination = memo(() => {
+  return (
+    <div className="pagination">
+      <ChevronLeft
+        fill="white"
+        onClick={() =>
+          (currentPage.value = currentPage.value > 1 ? currentPage.value - 1 : currentPage.value)
+        }
+      />
+      <span className="page-number">{currentPage}</span>
+      <ChevronRight
+        fill="white"
+        onClick={() =>
+          (currentPage.value =
+            trackingLogsPaginated.value.length < 10 ? currentPage.value : currentPage.value + 1)
+        }
+      />
+    </div>
+  )
+})
+
 const TrackedEventsDetails = memo(() => {
   return (
     <div className="feature-item grid-fill">
       <details>
-        <summary>
+        <summary className="tracked-events-title">
+          {trackingLogsPaginated.value.length > 0 && (
+            <p className="event-detail-year">
+              <>{currentPeriodYear}</>
+            </p>
+          )}
           Tracked events details
           <ChevronDown height={'24px'} fill="white" />
         </summary>
-
-        {trackingLogsPaginated.value.map((app, i) => (
-          <TrackedApp key={i} app={app} removeTrackingLog={removeTrackingLogCallback} />
-        ))}
+        <div className="tracked-events">
+          {trackingLogsPaginated.value.map((app, i) => (
+            <TrackedApp key={i} app={app} removeTrackingLog={removeTrackingLogCallback} />
+          ))}
+        </div>
         {trackingLogsPaginated.value.length === 0 && (
           <p className="no-data">
-            No data to display. Please select another period using the graph controls.
+            No data to display. <br />
+            Please select another period using the graph controls or change the filters.
           </p>
         )}
-        <div className="pagination">
-          <ChevronLeft
-            fill="white"
-            onClick={() =>
-              (currentPage.value =
-                currentPage.value > 1 ? currentPage.value - 1 : currentPage.value)
-            }
-          />
-          <span className="page-number">{currentPage}</span>
-          <ChevronRight
-            fill="white"
-            onClick={() =>
-              (currentPage.value =
-                trackingLogsPaginated.value.length < 10 ? currentPage.value : currentPage.value + 1)
-            }
-          />
-        </div>
+        {trackingLogsPaginated.value.length > 0 && <Pagination />}
       </details>
     </div>
   )
@@ -310,7 +315,7 @@ export default function Project() {
         {processes.value.length > 0 && (
           <>
             <HeaderTracking />
-            <div className="features  project-features">
+            <div className="features project-features">
               <div className="feature-item">
                 <ProjectLine />
                 <ProjectSettings />
@@ -318,10 +323,7 @@ export default function Project() {
               </div>
               <ProjectFilters />
               <TrackedAppsOverview />
-
-              <div className="feature-item grid-fill">
-                <ProjectBarCharts />
-              </div>
+              <ProjectBarCharts />
               <TrackedEventsDetails />
             </div>
           </>

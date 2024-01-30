@@ -4,14 +4,6 @@ import { currentProjectTrackingLogs, trackedApps } from './currentProject'
 
 export const period = signal('week')
 
-const prettyTime = (ms) => {
-  const s = Math.floor(parseInt(ms) / 1000)
-  const hours = Math.floor(s / 3600)
-  const minutes = Math.floor((s - hours * 3600) / 60)
-  const seconds = parseInt(s - hours * 3600 - minutes * 60)
-  return `${hours ? hours + 'h' : ''} ${minutes ? minutes + 'm' : ''} ${seconds || 0 + 's'}`
-}
-
 effect(() => {
   const currentDate = new Date()
   const currentDay = currentDate.getDay()
@@ -24,8 +16,8 @@ effect(() => {
     const endDay = new Date(
       currentDate.getFullYear(),
       currentDate.getMonth(),
-      currentDate.getDate() + (7 - currentDay),
-      1,
+      currentDate.getDate() + (6 - currentDay),
+      23,
       59,
       59,
       999
@@ -36,16 +28,16 @@ effect(() => {
     const lastDayOfMonth = new Date(
       currentDate.getFullYear(),
       currentDate.getMonth() + 1,
-      1,
       0,
-      0,
-      0,
-      0
+      23,
+      59,
+      59,
+      999
     )
     currentPeriod.value = { start: firstDayOfMonth.getTime(), end: lastDayOfMonth.getTime() }
   } else if (period.value === 'year') {
     const firstDayOfYear = new Date(currentDate.getFullYear(), 0, 1)
-    const lastDayOfYear = new Date(currentDate.getFullYear(), 11, 31)
+    const lastDayOfYear = new Date(currentDate.getFullYear(), 12, -1)
     currentPeriod.value = { start: firstDayOfYear.getTime(), end: lastDayOfYear.getTime() }
   }
 })
@@ -136,8 +128,8 @@ const getChartDataForEachMonth = (TrackingLogs) => {
     })
   }
   for (let i = 0; i <= startToEndMonth; i++) {
-    const currentMonth = (startDate.getMonth() + i) % 11
-    const currentYear = i > 11 ? endDate.getFullYear() : startDate.getFullYear()
+    const currentMonth = (startDate.getMonth() + i) % 12
+    const currentYear = i > 12 ? endDate.getFullYear() : startDate.getFullYear()
     const name = `${currentMonth + 1}/${String(currentYear).substring(2, 4)}`
     chartDataPerMonth.push({
       name: name,
@@ -167,3 +159,14 @@ export const dataChart = computed(() => {
     return getChartDataForEachMonth(currentProjectTrackingLogs.value)
   return []
 })
+
+export const currentChartTrackedApps = computed(() =>
+  Object.keys(
+    dataChart.value.reduce((acc, curr) => {
+      for (const app in curr) {
+        if (app !== 'name' && curr[app] > 0) acc[app] = true
+      }
+      return acc
+    }, {})
+  )
+)

@@ -1,8 +1,9 @@
-import { Database } from 'sqlite3'
+import sqlite3 from 'sqlite3'
 import { app } from 'electron'
 import { join } from 'path'
 import fs from 'fs'
 
+const { Database } = sqlite3
 const appDataPath = app.getPath('appData')
 const dirPath = join(appDataPath, 'Chrolog/storage')
 

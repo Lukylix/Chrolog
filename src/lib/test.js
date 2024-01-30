@@ -14,13 +14,14 @@ const getProcessInfos = async (processId) => {
 }
 
 if (process.platform === 'win32') {
+  const chrologPath = new URL('../../resources/chrolog.dll', import.meta.url)
   open({
     library: 'chrolog',
-    path: `${__dirname}/../../resources/chrolog.dll`
+    path: chrologPath
   })
 } else if (process.platform === 'linux') {
-  const chrologPath = `${__dirname}/../../resources/chrolog.so`
-  console.log('chrologPath', chrologPath)
+  const chrologPath = new URL('../../resources/chrolog.so', import.meta.url)
+  console.log('chrologPath', chrologPath.href)
   open({
     library: 'chrolog',
     path: chrologPath

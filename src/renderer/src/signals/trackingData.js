@@ -171,7 +171,7 @@ export function updateTrackingData({ trackedAppName, settings }) {
       }
     }
 
-    if (!currentTrackingLogIndex || currentTrackingLogIndex < 0) {
+    if (currentTrackingLogIndex < 0) {
       trackingLogs.push({
         name: trackedAppName,
         startDate: Date.now(),

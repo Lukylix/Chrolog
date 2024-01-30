@@ -2,13 +2,17 @@ import { resolve } from 'path'
 import { defineConfig, externalizeDepsPlugin } from 'electron-vite'
 import react from '@vitejs/plugin-react'
 import svgr from '@svgr/rollup'
+import { URL, pathToFileURL } from 'url'
 
 export default defineConfig({
   main: {
     plugins: [externalizeDepsPlugin()],
     build: {
       rollupOptions: {
-        external: ['sqlite3']
+        external: ['sqlite3'],
+        output: {
+          format: 'es'
+        }
       },
       asar: false
     }
@@ -17,7 +21,10 @@ export default defineConfig({
     plugins: [externalizeDepsPlugin()],
     build: {
       rollupOptions: {
-        external: ['sqlite3']
+        external: ['sqlite3'],
+        output: {
+          format: 'es'
+        }
       },
       asar: false
     }
@@ -25,12 +32,15 @@ export default defineConfig({
   renderer: {
     resolve: {
       alias: {
-        '@renderer': resolve('src/renderer/src')
+        '@renderer': new URL('./src/renderer/src', import.meta.url)
       }
     },
     build: {
       rollupOptions: {
-        external: ['sqlite3']
+        external: ['sqlite3'],
+        output: {
+          format: 'es'
+        }
       }
     },
     plugins: [react(), svgr()],

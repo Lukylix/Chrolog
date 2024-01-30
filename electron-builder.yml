@@ -10,7 +10,7 @@ files:
   - '!{.env,.env.*,.npmrc,pnpm-lock.yaml}'
 asarUnpack:
   - resources/*
-afterSign: build/notarize.js
+afterSign: ./build/notarize.js
 win:
   executableName: chrolog
   icon: ./build/icon256.ico

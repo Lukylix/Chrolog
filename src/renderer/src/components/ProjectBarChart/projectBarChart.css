@@ -3,3 +3,8 @@
   justify-content: center;
   height: 38px;
 }
+
+.graph-year {
+  position: absolute;
+  top: 10px;
+}

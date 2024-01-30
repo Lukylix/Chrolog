@@ -16,7 +16,7 @@ if (process.platform === 'win32') {
   let processPath = app
     .getPath('exe')
     .replace(/(?!\\).[^\\]+\.exe$/gm, '')
-    .replace(/\/$/, '')
+    .replace(/\/+$/, '')
   if (processPath.includes('node_modules'))
     processPath = processPath.replace(/node_modules.*/gm, '').replace(/\/$/, '')
   const chrologPaths = [

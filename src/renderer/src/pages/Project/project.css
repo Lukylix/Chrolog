@@ -31,23 +31,32 @@
   grid-template-columns: 1fr auto;
 }
 
+.tracked-events {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
 .tracked-app {
   display: flex;
   gap: 10px;
   align-items: center;
+  border-radius: 5px;
+  background-color: #2f3241;
+  padding: 5px;
 }
 
 .tracked-app .app-color {
   width: 10px;
   height: 40px;
   border-radius: 5px;
-  margin-block: 5px;
 }
 
 .tracked-app-apps {
   border-radius: 5px;
   padding: 5px 15px 5px 5px;
   color: #272727;
+  background-color: whitesmoke;
   margin-top: 10px;
 }
 
@@ -153,7 +162,6 @@ input[list] {
   background-color: #3282f7;
   padding: 5px;
   color: white;
-  font-weight: bold;
   border-radius: 5px;
 }
 
@@ -190,6 +198,17 @@ details summary {
 
 details summary::-webkit-details-marker {
   display: none;
+}
+
+details summary.tracked-events-title {
+  display: flex;
+  justify-content: center;
+  padding-bottom: 10px;
+}
+
+.event-detail-year {
+  position: absolute;
+  left: 10px;
 }
 
 .no-data {

@@ -4,7 +4,7 @@ import { ReactComponent as BackIcon } from '../../assets/back.svg'
 import { ReactComponent as FileIcon } from '../../assets/file.svg'
 import { ReactComponent as PowerIcon } from '../../assets/power.svg'
 import { ReactComponent as ChrologIcon } from '../../assets/chrolog.svg'
-import './headerTracker.css'
+import './headerTracking.css'
 
 import { isTracking } from '../../signals/tracking.js'
 
@@ -14,7 +14,7 @@ export default function HeaderTracking() {
   const location = useLocation()
   const path = location.pathname
   return (
-    <div className="d-inline space-between">
+    <div className="d-inline space-between mb-20">
       <div className="d-inline">
         <Link to="/">
           <h2>

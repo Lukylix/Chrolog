@@ -49,117 +49,140 @@ export default function Settings() {
   return (
     <div className="container">
       <HeaderTracking />
-      <h1>Settings</h1>
       <div className="features">
-        <div className="feature-item settings">
-          <h4>Start at launch</h4>
-          <button
-            style={{ backgroundColor: '#3282F7', marginBlock: '10px' }}
-            onClick={(value) => {
-              ipcRenderer.send('set-auto-launch')
-            }}
-          >
-            Enable
-          </button>
+        <div className="feature-item">
+          <h1>Settings</h1>
+          <div className="settings">
+            <div className="d-grid gap-10">
+              <div className="setting-group">
+                <h4>Start at launch</h4>
+                <button
+                  style={{ backgroundColor: '#3282F7', marginBlock: '10px' }}
+                  onClick={() => {
+                    ipcRenderer.send('set-auto-launch')
+                  }}
+                >
+                  Enable
+                </button>
+              </div>
+              <div className="setting-group">
+                <h4>Start tracking at launch</h4>
+                <Toggle
+                  toggled={startTrackingAtLaunch.value}
+                  setIsToggled={(value) =>
+                    (startTrackingAtLaunch.value = !startTrackingAtLaunch.value)
+                  }
+                />
+              </div>
 
-          <h4>Start tracking a lauch</h4>
-          <Toggle
-            toggled={startTrackingAtLaunch.value}
-            setIsToggled={(value) => (startTrackingAtLaunch.value = !startTrackingAtLaunch.value)}
-          />
-          <h4>Enable extension</h4>
-          <Toggle
-            toggled={extensionEnabled.value}
-            setIsToggled={(value) => {
-              ipcRenderer.send('toggle-extension', !extensionEnabled.value)
-              extensionEnabled.value = !extensionEnabled.value
-            }}
-          />
-          <h4>Browser process</h4>
-          <div className="col-2-auto w-fit-content">
-            <DatalistProcesses />
-            <button
-              style={{ backgroundColor: '#3282F7', margin: '10px 10px 10px 5px' }}
-              onClick={() => {
-                browserProcesses.value = trackedApps.value
-              }}
-            >
-              Update
-            </button>
-          </div>
-          {browserProcesses.value.length > 0 && (
-            <div style={{ marginBottom: '10px' }}>
-              <div className="d-inline">
-                {browserProcesses.value.map((browser) => (
-                  <span key={browser} className="browser-processes">
-                    {browser}
-                    <CloseIcon
-                      fill="white"
-                      height="15px"
-                      className="close-icon"
-                      onClick={() =>
-                        (browserProcesses.value = browserProcesses.value.filter(
-                          (site) => site !== browser
-                        ))
-                      }
-                    />
-                  </span>
-                ))}
+              <div className="setting-group">
+                <h4>Minimum time to log {convertSecondsToMinutes(minLogSecs.value)}</h4>
+                <Slider
+                  min={0}
+                  max={10 * 60}
+                  value={minLogSecs.value}
+                  onChange={(value) => (minLogSecs.value = value)}
+                />
+              </div>
+              <div className="setting-group">
+                <h4>Maximum afk time {convertSecondsToMinutes(minLastInputSecs.value)}</h4>
+                <Slider
+                  min={0}
+                  max={2 * 60}
+                  value={minLastInputSecs.value}
+                  onChange={(value) => (minLastInputSecs.value = value)}
+                />
               </div>
             </div>
-          )}
-          <h4>Websites exclusion</h4>
-          <div className="col-2-auto w-fit-content">
-            <input
-              value={siteExclusionInput}
-              onChange={(event) => (siteExclusionInput.value = event.target.value)}
-            />
-            <button
-              style={{ backgroundColor: '#3282F7', margin: '10px' }}
-              onClick={() =>
-                (sitesExclusions.value = [
-                  ...new Set([...sitesExclusions.value, siteExclusionInput])
-                ])
-              }
-            >
-              Add
-            </button>
-          </div>
-          {sitesExclusions.value.length > 0 && (
-            <div style={{ marginBottom: '10px' }}>
-              <div className="d-inline">
-                {sitesExclusions.value.map((siteExclusion) => (
-                  <span key={siteExclusion} className="site-exclusion">
-                    {siteExclusion}
-                    <CloseIcon
-                      fill="white"
-                      height="15px"
-                      className="close-icon"
-                      onClick={() =>
-                        (sitesExclusions.value = sitesExclusions.filter(
-                          (site) => site !== siteExclusion
-                        ))
-                      }
-                    />
-                  </span>
-                ))}
+            <div className="d-grid gap-10">
+              <div className="setting-group">
+                <h4>Enable extension</h4>
+                <p>(Permit websites exclusion)</p>
+                <Toggle
+                  toggled={extensionEnabled.value}
+                  setIsToggled={() => {
+                    ipcRenderer.send('toggle-extension', !extensionEnabled.value)
+                    extensionEnabled.value = !extensionEnabled.value
+                  }}
+                />
+                {extensionEnabled.value && (
+                  <>
+                    <h4>Browser process</h4>
+                    <div className="col-2-auto w-fit-content">
+                      <DatalistProcesses />
+                      <button
+                        style={{ backgroundColor: '#3282F7', margin: '10px 10px 10px 5px' }}
+                        onClick={() => {
+                          browserProcesses.value = trackedApps.value
+                        }}
+                      >
+                        Update
+                      </button>
+                    </div>
+                    {browserProcesses.value.length > 0 && (
+                      <div style={{ marginBottom: '10px' }}>
+                        <div className="d-inline">
+                          {browserProcesses.value.map((browser) => (
+                            <span key={browser} className="browser-processes">
+                              {browser}
+                              <CloseIcon
+                                fill="white"
+                                height="15px"
+                                className="close-icon"
+                                onClick={() =>
+                                  (browserProcesses.value = browserProcesses.value.filter(
+                                    (site) => site !== browser
+                                  ))
+                                }
+                              />
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    <h4>Websites exclusion</h4>
+                    <div className="col-2-auto w-fit-content">
+                      <input
+                        value={siteExclusionInput}
+                        onChange={(event) => (siteExclusionInput.value = event.target.value)}
+                      />
+                      <button
+                        style={{ backgroundColor: '#3282F7', margin: '10px' }}
+                        onClick={() =>
+                          (sitesExclusions.value = [
+                            ...new Set([...sitesExclusions.value, siteExclusionInput])
+                          ])
+                        }
+                      >
+                        Add
+                      </button>
+                    </div>
+                    {sitesExclusions.value.length > 0 && (
+                      <div style={{ marginBottom: '10px' }}>
+                        <div className="d-inline">
+                          {sitesExclusions.value.map((siteExclusion) => (
+                            <span key={siteExclusion} className="site-exclusion">
+                              {siteExclusion}
+                              <CloseIcon
+                                fill="white"
+                                height="15px"
+                                className="close-icon"
+                                onClick={() =>
+                                  (sitesExclusions.value = sitesExclusions.filter(
+                                    (site) => site !== siteExclusion
+                                  ))
+                                }
+                              />
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
             </div>
-          )}
-          <h4>Minimum time to log {convertSecondsToMinutes(minLogSecs.value)}</h4>
-          <Slider
-            min={0}
-            max={10 * 60}
-            value={minLogSecs.value}
-            onChange={(value) => (minLogSecs.value = value)}
-          />
-          <h4>Maximun afk time {convertSecondsToMinutes(minLastInputSecs.value)}</h4>
-          <Slider
-            min={0}
-            max={2 * 60}
-            value={minLastInputSecs.value}
-            onChange={(value) => (minLastInputSecs.value = value)}
-          />
+          </div>
         </div>
       </div>
     </div>
