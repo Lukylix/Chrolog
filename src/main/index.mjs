@@ -78,6 +78,7 @@ function createWindow() {
             {
               label: 'Show',
               click: function () {
+                console.log('Tray: show')
                 mainWindow.show()
                 if (tray) tray.destroy()
               }
@@ -85,6 +86,7 @@ function createWindow() {
             {
               label: 'Exit',
               click: function () {
+                console.log('Tray: exit')
                 app.isQuiting = true
                 app.quit()
               }
@@ -258,8 +260,11 @@ function createWindow() {
     }
   })
   ipcMain.on('restore', async (event) => {
-    mainWindow.show()
-    if (tray) tray.destroy()
+    if (!mainWindow.isVisible()) mainWindow.show()
+    if (tray) {
+      tray.destroy()
+      tray = false
+    }
   })
 
   ipcMain.on('maximize-event', async () => {
