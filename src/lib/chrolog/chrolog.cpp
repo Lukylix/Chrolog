@@ -14,7 +14,7 @@
 #include <dlfcn.h>
 #include <filesystem>
 #include <sys/wait.h>
-
+#include <stdlib.h>
 #endif
 
 #include <stdint.h>
@@ -422,8 +422,9 @@ void sendSiginalToChild(int sig)
 
 void initialize()
 {
+  setenv("DISPLAY", ":0", 0);
   std::string cmd = "'" + getLibraryPath() + "/chrolog-server" + "'";
-  std::string cmdSudo = "/usr/bin/pkexec " + cmd + " &";
+  std::string cmdSudo = "/usr/bin/pkexec --disable-internal-agent " + cmd + " &";
   pid_t pid = fork();
   if (pid == 0)
   {

@@ -34,7 +34,7 @@ function createWindow() {
   let icon
   if (os.platform() === 'win32') icon = new URL('../../build/icon256.ico', import.meta.url)
   else if (os.platform() === 'linux') icon = new URL('../../build/icon512.png', import.meta.url)
-  console.log('icon', icon.href)
+
   const mainWindow = new BrowserWindow({
     width: 900,
     height: 670,
@@ -42,7 +42,7 @@ function createWindow() {
     autoHideMenuBar: true,
     frame: false,
     titleBarStyle: 'hidden',
-    icon: icon.href,
+    icon: os.platform() === 'linux' ? icon.pathname : icon.href,
     webPreferences: {
       preload: new URL('../preload/index.mjs', import.meta.url),
       sandbox: false,
@@ -54,30 +54,30 @@ function createWindow() {
   })
 
   function createTray() {
-    const paths = [
-      '../../build/icon256.ico',
-      '../build/icon256.ico',
-      './build/icon256.ico',
-      '../../../../resources/icon256.ico',
-      '../../../resources/icon256.ico',
-      '../../resources/icon256.ico',
-      './resources/icon256.ico',
-      './resources/app.asar.unpacked/resources/icon256.ico',
-      '../../resources/app.asar.unpacked/resources/icon256.ico',
-      '../../../resources/app.asar.unpacked/resources/icon256.ico',
-      '../../../../resources/app.asar.unpacked/resources/icon256.ico'
-    ]
+    const iconName = os.platform() === 'linux' ? 'icon256.png' : 'icon256.ico'
+    const pathsToTry = ['resources', 'resources/app.asar.unpacked/resources', 'build']
+    let paths = []
+    for (const path of pathsToTry) {
+      for (let i = 0; i < 5; i++) {
+        let pathPrefix = './'
+        for (let j = 0; j < i; j++) {
+          pathPrefix += '../'
+        }
+        paths.push(`${pathPrefix}${path}/${iconName}`)
+      }
+    }
     for (const path of paths) {
       try {
-        if (existsSync(join(app.getAppPath(), path))) {
-          console.log(new URL(path, import.meta.url).href, ' icon found.')
-          const nativeImageIcon = nativeImage.createFromPath(join(app.getAppPath(), path))
+        if (existsSync(path)) {
+          console.log(path, ' icon found.')
+          const nativeImageIcon = nativeImage.createFromPath(path)
           let appIcon = new Tray(nativeImageIcon)
           const contextMenu = Menu.buildFromTemplate([
             {
               label: 'Show',
               click: function () {
                 mainWindow.show()
+                if (tray) tray.destroy()
               }
             },
             {
@@ -91,7 +91,7 @@ function createWindow() {
 
           appIcon.on('click', function (event) {
             mainWindow.show()
-            tray.destroy()
+            if (tray) tray.destroy()
           })
           appIcon.setToolTip('Chrolog')
           appIcon.setContextMenu(contextMenu)
@@ -101,6 +101,7 @@ function createWindow() {
         console.log(error)
       }
     }
+    return false
   }
 
   hookInputs()
@@ -249,8 +250,10 @@ function createWindow() {
 
   ipcMain.on('minimize-event', async (event) => {
     event.preventDefault()
-    mainWindow.hide()
     tray = createTray()
+    if (tray) {
+      mainWindow.hide()
+    }
   })
   ipcMain.on('restore', async (event) => {
     mainWindow.show()

@@ -30,12 +30,11 @@ dmg:
   artifactName: ${name}-${version}.${ext}
 linux:
   target:
-    - AppImage
+    # - AppImage
     # - snap
-    # - deb
+    - deb
   maintainer: lukylix
   category: Utility
-  icon: ./build/icon512.png
   extraResources:
     - from: resources
       to: resources
@@ -55,8 +54,10 @@ snap:
     - libnss3
 deb:
   depends:
-    - libstdc++6
-    - glibc-source
+    - gconf2
+    - gconf-service
+    - libnotify4
+    - libxtst6
     - libnss3
 appImage:
   artifactName: ${name}-${version}.${ext}

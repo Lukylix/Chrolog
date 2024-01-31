@@ -52,6 +52,7 @@ Execute command -> Task: run task -> build-lib-win
 Then build the electron app.
 
 ```bash
+npm install
 npm run m-postinstall
 npm run build:win
 ```
@@ -71,6 +72,7 @@ or
 Execute command -> Task: run task -> build-lib-linux
 
 ```bash
+npm install
 npm run m-postinstall
 npm run build:linux
 ```
