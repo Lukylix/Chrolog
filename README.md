@@ -10,11 +10,6 @@ Visit the [release page](https://github.com/Lukylix/Chrolog/releases) to downloa
 <img src="./ProjectDetails.png" alt="Project Details page" style="width: 300px;">
 <img src="./Home.png" alt="Home page" style="width: 300px;">
 
-# How to Run on Linux
-
-To run Chrolog on Linux, launch it from a terminal.  
-Without launching from a terminal, the necessary sudo prompt will not function correctly.
-
 # Development Guidelines
 
 ## Ideal IDE Setup
