@@ -56,6 +56,7 @@ function createWindow() {
   function createTray() {
     const iconName = os.platform() === 'linux' ? 'icon256.png' : 'icon256.ico'
     const pathsToTry = ['resources', 'resources/app.asar.unpacked/resources', 'build']
+    const appPath = app.getAppPath()
     let paths = []
     for (const path of pathsToTry) {
       for (let i = 0; i < 5; i++) {
@@ -63,9 +64,10 @@ function createWindow() {
         for (let j = 0; j < i; j++) {
           pathPrefix += '../'
         }
-        paths.push(`${pathPrefix}${path}/${iconName}`)
+        paths.push(join(appPath, `${pathPrefix}${path}/${iconName}`))
       }
     }
+
     for (const path of paths) {
       try {
         if (existsSync(path)) {
@@ -88,11 +90,11 @@ function createWindow() {
               }
             }
           ])
-
-          appIcon.on('click', function (event) {
-            mainWindow.show()
-            if (tray) tray.destroy()
-          })
+          if (os.platform() === 'win32')
+            appIcon.on('click', function () {
+              mainWindow.show()
+              if (tray) tray.destroy()
+            })
           appIcon.setToolTip('Chrolog')
           appIcon.setContextMenu(contextMenu)
           return appIcon
