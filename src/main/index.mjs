@@ -259,7 +259,7 @@ function createWindow() {
   })
   ipcMain.on('restore', async (event) => {
     mainWindow.show()
-    tray.destroy()
+    if (tray) tray.destroy()
   })
 
   ipcMain.on('maximize-event', async () => {
