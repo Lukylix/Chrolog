@@ -28,18 +28,6 @@ Visit the [release page](https://github.com/Lukylix/Chrolog/releases) to downloa
 
 ## How to Set Up the Project
 
-### Development
-
-Type these commands in your terminal:
-
-```bash
-npm install
-npm run m-postinstall
-npm run dev
-```
-
-### Build
-
 #### For windows :
 
 Ensure that you have the Build Tools for [Microsoft Visual Studio 2022](https://visualstudio.microsoft.com/downloads/) installed.  
@@ -50,15 +38,16 @@ if you want to recompile the cpp files install [gcc](https://code.visualstudio.c
 In Visual Studio Code :  
 `ctrl`+`shift`+`B` To run the chrolog.dll build (build-lib-win).
 or  
-Execute command -> Task: run task -> build-lib-win
+Execute command -> Task: run task -> build-lib-win.
 
 Then build the electron app.
 
 ```bash
-npm install
-npm run m-postinstall
-npm run build:win
+yarn
+yarn m-postinstall
 ```
+
+Then you can type `yarn dev` or `yarn build:win`.
 
 #### For linux
 
@@ -72,10 +61,11 @@ sudo apt-get install build-essential
 In Visual Studio Code :  
 `ctrl`+`shift`+`B` To run the chrolog.so and chrolog-server build (build-lib-linux) .
 or  
-Execute command -> Task: run task -> build-lib-linux
+Execute command -> Task: run task -> build-lib-linux.
 
 ```bash
-npm install
-npm run m-postinstall
-npm run build:linux
+yarn
+yarn m-postinstall
 ```
+
+Then you can type `yarn dev` or `yarn build:linux`.
