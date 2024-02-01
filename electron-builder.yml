@@ -52,13 +52,13 @@ snap:
     - glibc-source
     - GLIBC_2.33
     - libnss3
-deb:
-  depends:
-    - gconf2
-    - gconf-service
-    - libnotify4
-    - libxtst6
-    - libnss3
+# deb:
+#   depends:
+#     - gconf2
+#     - gconf-service
+#     - libnotify4
+#     - libxtst6
+#     - libnss3
 appImage:
   artifactName: ${name}-${version}.${ext}
   desktop:

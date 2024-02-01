@@ -28,7 +28,66 @@ let startMinimized = (process.argv || []).indexOf('--hidden') !== -1
 
 const store = new Store()
 
-let tray = null
+function createTray() {
+  const mainWindow = BrowserWindow.getAllWindows()[0]
+  const iconName = os.platform() === 'linux' ? 'icon256.png' : 'icon256.ico'
+  const pathsToTry = [
+    'resources',
+    'resources/resources',
+    'resources/app.asar/resources',
+    'resources/app.asar.unpacked/resources',
+    'build'
+  ]
+  const appPath = app.getAppPath()
+  let paths = []
+  for (const path of pathsToTry) {
+    for (let i = 0; i < 5; i++) {
+      let pathPrefix = './'
+      for (let j = 0; j < i; j++) {
+        pathPrefix += '../'
+      }
+      paths.push(join(appPath, `${pathPrefix}${path}/${iconName}`))
+    }
+  }
+
+  for (const path of paths) {
+    try {
+      if (existsSync(path)) {
+        console.log(path, ' icon found.')
+        const nativeImageIcon = nativeImage.createFromPath(path)
+        const tray = new Tray(nativeImageIcon)
+        const contextMenu = Menu.buildFromTemplate([
+          {
+            label: 'Show',
+            click: () => {
+              console.log('Tray: show')
+              mainWindow?.show()
+              tray.destroy()
+            }
+          },
+          {
+            label: 'Exit',
+            click: () => {
+              console.log('Tray: exit')
+              app.isQuiting = true
+              app.quit()
+            }
+          }
+        ])
+        if (os.platform() === 'win32')
+          tray.on('click', () => {
+            mainWindow?.show()
+            tray.destroy()
+          })
+        tray.setToolTip('Chrolog')
+        tray.setContextMenu(contextMenu)
+        break
+      }
+    } catch (error) {
+      console.log(error)
+    }
+  }
+}
 
 function createWindow() {
   let icon
@@ -47,66 +106,9 @@ function createWindow() {
       preload: new URL('../preload/index.mjs', import.meta.url),
       sandbox: false,
       nodeIntegration: true,
-      contextIsolation: false,
-      enableRemoteModule: true,
-      disableGpu: true
+      contextIsolation: false
     }
   })
-
-  function createTray() {
-    const iconName = os.platform() === 'linux' ? 'icon256.png' : 'icon256.ico'
-    const pathsToTry = ['resources', 'resources/app.asar.unpacked/resources', 'build']
-    const appPath = app.getAppPath()
-    let paths = []
-    for (const path of pathsToTry) {
-      for (let i = 0; i < 5; i++) {
-        let pathPrefix = './'
-        for (let j = 0; j < i; j++) {
-          pathPrefix += '../'
-        }
-        paths.push(join(appPath, `${pathPrefix}${path}/${iconName}`))
-      }
-    }
-
-    for (const path of paths) {
-      try {
-        if (existsSync(path)) {
-          console.log(path, ' icon found.')
-          const nativeImageIcon = nativeImage.createFromPath(path)
-          let appIcon = new Tray(nativeImageIcon)
-          const contextMenu = Menu.buildFromTemplate([
-            {
-              label: 'Show',
-              click: function () {
-                console.log('Tray: show')
-                mainWindow.show()
-                if (tray) tray.destroy()
-              }
-            },
-            {
-              label: 'Exit',
-              click: function () {
-                console.log('Tray: exit')
-                app.isQuiting = true
-                app.quit()
-              }
-            }
-          ])
-          if (os.platform() === 'win32')
-            appIcon.on('click', function () {
-              mainWindow.show()
-              if (tray) tray.destroy()
-            })
-          appIcon.setToolTip('Chrolog')
-          appIcon.setContextMenu(contextMenu)
-          return appIcon
-        }
-      } catch (error) {
-        console.log(error)
-      }
-    }
-    return false
-  }
 
   hookInputs()
 
@@ -254,17 +256,11 @@ function createWindow() {
 
   ipcMain.on('minimize-event', async (event) => {
     event.preventDefault()
-    tray = createTray()
-    if (tray) {
-      mainWindow.hide()
-    }
+    createTray()
+    mainWindow?.hide()
   })
   ipcMain.on('restore', async (event) => {
-    if (!mainWindow.isVisible()) mainWindow.show()
-    if (tray) {
-      tray.destroy()
-      tray = false
-    }
+    if (!mainWindow.isVisible()) mainWindow?.show()
   })
 
   ipcMain.on('maximize-event', async () => {

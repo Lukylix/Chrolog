@@ -97,6 +97,7 @@ let shouldExit = false
 app.on('before-quit', () => {
   shouldExit = true
   if (isChrologLoaded) close('chrolog')
+  isChrologLoaded = false
   console.log("I'm exiting")
 })
 
