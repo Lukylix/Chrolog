@@ -1,4 +1,4 @@
-# :rocket: Chrolog - Your Open-Source Time Tracking Tool
+# Chrolog - Your Open-Source Time Tracking Tool
 
 Chrolog is a time tracking software. It tracks time by recognizing keyboard and mouse actions, and records how long you spend on each project.  
 With the Chrome extension [Chrolog - TabTracker](https://chromewebstore.google.com/detail/chrolog-tabtracker/kcfeanjmngaljpdfnojiijemmfmdlapf) , you can choose which websites to exclude from tracking.
@@ -17,13 +17,6 @@ Visit the [release page](https://github.com/Lukylix/Chrolog/releases) to downloa
 
 - **No Parsing**:  
   Your inputs are tracked without content parsing, preserving the privacy of your keystrokes and mouse movements.
-
-# :bug: Known Issues :
-
-- ### Linux Tray Restoration :
-  - **Description:** The tray fails to restore when launched from a terminal on certain Linux distributions.
-  - **Resolution:** The issue is currently under investigation and seems to be related to Electron itself.  
-    As a workaround, users can try launching the application directly using a graphical interface.
 
 # :man_technologist: Development Guidelines
 
