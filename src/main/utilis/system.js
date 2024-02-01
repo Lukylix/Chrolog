@@ -217,7 +217,6 @@ const addProcessToFetch = (pid) => {
 
 export const getProcessesListener = async () => {
   if (lastProcessFetchTime + 1000 > Date.now() || !isChrologLoaded) return
-  console.log('get-windows-with-icons')
   lastProcessFetchTime = Date.now()
   processes = []
   const isSucess = load({

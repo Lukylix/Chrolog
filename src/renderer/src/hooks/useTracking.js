@@ -127,7 +127,7 @@ const useTracking = () => {
     let intervalId = null
     if (isTracking.value) {
       track()
-      intervalId = setInterval(track, 100)
+      intervalId = setInterval(track, 500)
       isTrackingRunning.value = true
     }
     return () => {

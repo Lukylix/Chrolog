@@ -3,18 +3,21 @@
 #include <psapi.h>
 #endif
 #ifdef linux
+#include <X11/Xlib.h>
+#include <X11/Xatom.h>
 #include <iostream>
-#include <stdexcept>
-#include <cstring>
-#include <vector>
+#include <limits.h>
 #include <unistd.h>
-#include <fcntl.h>
-#include <linux/input.h>
-
-#include <dlfcn.h>
-#include <filesystem>
-#include <sys/wait.h>
+#include <cstring>
+#include <dirent.h>
 #include <stdlib.h>
+#include <filesystem>
+#include <dlfcn.h>
+#include <signal.h>
+#include <sys/stat.h>
+#include <set>
+#include <fstream>
+#include <unordered_set>
 #endif
 
 #include <stdint.h>
@@ -249,74 +252,94 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
 
 #ifdef linux // Linux
 
-static bool isGonome = false;
-static std::set<int> g_processIds;
-static std::set<int>::iterator processIter;
 static bool shouldExit = false;
 
-std::string trim(const std::string &str)
-{
-  size_t first = str.find_first_not_of(' ');
-  if (std::string::npos == first)
-  {
-    return str;
-  }
-  size_t last = str.find_last_not_of(' ');
-  return str.substr(first, (last - first + 1));
-}
+static std::set<int> g_processIds;
+static std::set<int>::iterator processIter;
 
-std::string getLibraryPath()
+const char *EmptyString()
 {
-  Dl_info dl_info;
-  dladdr((void *)getLibraryPath, &dl_info);
-  std::filesystem::path libPath(dl_info.dli_fname);
-  return libPath.parent_path();
-}
-
-std::string exec(std::string cmd)
-{
-  const char *cmdChar = cmd.c_str();
-  std::array<char, 128> buffer;
-  std::string result;
-  try
-  {
-    FILE *pipe = popen(cmdChar, "r");
-    if (!pipe)
-    {
-      throw std::runtime_error("popen() failed!");
-    }
-    while (fgets(buffer.data(), buffer.size(), pipe) != nullptr)
-    {
-      result += buffer.data();
-    }
-    if (pclose(pipe) != 0)
-    {
-      throw std::runtime_error("pclose() failed!");
-    }
-  }
-  catch (std::exception &e)
-  {
-    result = "";
-    return result;
-  }
-  return result;
-}
-
-const char *GetActiveAppGnome()
-{
-  std::string cmd = "readlink -f /proc/$(xdotool getwindowpid $(xdotool getwindowfocus))/exe";
-  std::string result = exec(cmd.c_str());
-  std::string process = trim(result.substr(result.find_last_of("/") + 1));
-  char *cstr = new char[process.length() + 1];
-  strcpy(cstr, process.c_str());
+  char *cstr = new char[1];
+  cstr[0] = '\0';
   return cstr;
 }
 
-const char *GetActiveAppX11()
+int GetActiveWindowPID()
 {
-  std::string cmd = "readlink -f /proc/$(xprop -id $(xprop -root _NET_ACTIVE_WINDOW | cut -d ' ' -f 5) _NET_WM_PID | cut -d ' ' -f 3)/exe";
-  std::string result = exec(cmd.c_str());
-  std::string process = trim(result.substr(result.find_last_of("/") + 1));
+  Display *display = XOpenDisplay(nullptr);
+  if (!display)
+  {
+    return -1;
+  }
+
+  Window root = DefaultRootWindow(display);
+  Atom netActiveWindow = XInternAtom(display, "_NET_ACTIVE_WINDOW", False);
+  Atom type;
+  int format;
+  unsigned long nitems;
+  unsigned long bytesAfter;
+  unsigned char *data;
+  if (XGetWindowProperty(display, root, netActiveWindow, 0, 1, False, XA_WINDOW, &type, &format, &nitems, &bytesAfter, &data) != Success || nitems == 0)
+  {
+    XCloseDisplay(display);
+    return -1;
+  }
+
+  Window win = ((Window *)data)[0];
+  XFree(data);
+  if (win == None)
+  {
+    XCloseDisplay(display);
+    return -1;
+  }
+  Atom netWmPid = XInternAtom(display, "_NET_WM_PID", False);
+  if (XGetWindowProperty(display, win, netWmPid, 0, 1, False, XA_CARDINAL, &type, &format, &nitems, &bytesAfter, &data) != Success || nitems == 0)
+  {
+    XCloseDisplay(display);
+    return -1;
+  }
+  int pid = ((int *)data)[0];
+  XFree(data);
+  return pid;
+}
+
+const char *GetProcessPath(int pid)
+{
+  char procPath[PATH_MAX];
+  snprintf(procPath, sizeof(procPath), "/proc/%d/exe", pid);
+  char processName[PATH_MAX];
+  ssize_t len = readlink(procPath, processName, sizeof(processName) - 1);
+  if (len == -1)
+  {
+    return EmptyString();
+  }
+  processName[len] = '\0';
+  std::string to_remove = " (deleted)";
+  std::string processNameStr = processName;
+  size_t pos = processNameStr.find(to_remove);
+  if (pos != std::string::npos)
+  {
+    processNameStr.erase(pos, to_remove.length());
+  }
+  strcpy(processName, processNameStr.c_str());
+
+  const char *processNameConst = processName;
+  return processNameConst;
+}
+
+const char *GetProcessName(const char *processPath)
+{
+  if (processPath[0] == '\0')
+  {
+    return EmptyString();
+  }
+  size_t lastSlashIndex = std::string(processPath).find_last_of("/");
+  if (lastSlashIndex == std::string::npos)
+    return EmptyString();
+  std::string process = processPath;
+  process = process.substr(lastSlashIndex + 1);
+  if (process.empty())
+    return EmptyString();
   char *cstr = new char[process.length() + 1];
   strcpy(cstr, process.c_str());
   return cstr;
@@ -324,79 +347,117 @@ const char *GetActiveAppX11()
 
 const char *GetActiveApp()
 {
-  if (isGonome)
+  int activeWindowPID = GetActiveWindowPID();
+  if (activeWindowPID == -1)
   {
-    return GetActiveAppGnome();
+    return EmptyString();
   }
-  else
+  const char *processPath = GetProcessPath(activeWindowPID);
+  if (processPath[0] == '\0')
   {
-    return GetActiveAppX11();
+    return EmptyString();
   }
+  const char *processName = GetProcessName(processPath);
+  return processName;
+}
+
+int getProcessUID(int pid)
+{
+  struct stat info;
+  char path[256];
+  sprintf(path, "/proc/%d", pid);
+  if (stat(path, &info) == 0)
+  {
+    int uid = info.st_uid;
+    return uid;
+  }
+  return -1;
+}
+
+int GetMinUID()
+{
+  std::ifstream file("/etc/login.defs");
+  std::string line;
+
+  while (std::getline(file, line))
+  {
+    std::istringstream iss(line);
+    std::string word;
+    iss >> word;
+    if (word == "UID_MIN")
+    {
+      iss >> word;
+      return std::stoi(word);
+      break;
+    }
+  }
+
+  return 1000;
+}
+
+static int minUID = GetMinUID();
+
+char *IntToString(int value)
+{
+  int length = snprintf(NULL, 0, "%d", value);
+  char *str = new char[length + 1];
+  snprintf(str, length + 1, "%d", value);
+  return str;
 }
 
 char **GetProcessInfos(int pid)
 {
-  std::string cmd = "ps -p " + std::to_string(pid) + " -o comm=,cmd=";
-  std::string result = exec(cmd.c_str());
-  std::string resultTrimmed = trim(result);
-  std::string process = trim(resultTrimmed.substr(0, resultTrimmed.find(" ")));
-  std::string secondHalf = trim(resultTrimmed.substr(resultTrimmed.find(" ") + 1));
-  std::string processPath = trim(secondHalf.substr(0, secondHalf.find(" ")));
+  const char *processPathConst = GetProcessPath(pid);
+  char *processPath = new char[strlen(processPathConst) + 1];
+  strcpy(processPath, processPathConst);
 
-  char *processChar = new char[process.length() + 1];
-  strcpy(processChar, process.c_str());
-  char *processPathChar = new char[processPath.length() + 1];
-  strcpy(processPathChar, processPath.c_str());
-  char **vec = new char *[2];
-  if (process.empty())
-  {
-    vec[0] = new char[1];
-    vec[0][0] = '\0';
-  }
-  else
-  {
-    vec[0] = processChar;
-  }
-  if (processPath.empty())
-  {
-    vec[1] = new char[1];
-    vec[1][0] = '\0';
-  }
-  else
-  {
-    vec[1] = processPathChar;
-  }
-  return vec;
+  const char *processNameConst = GetProcessName(processPath);
+  char *processName = new char[strlen(processNameConst) + 1];
+  strcpy(processName, processNameConst);
+
+  char **infos = new char *[2];
+  infos[0] = processPath;
+  infos[1] = processName;
+  return infos;
 }
 
 bool EnumWindowsProcessIds()
 {
+  std::unordered_set<std::string> processNames;
+
   g_processIds.clear();
-  std::string cmd = "ps -U root -u root -N -o pid=";
-  std::string result = exec(cmd.c_str());
-  std::string resultTrimmed = trim(result);
-  if (resultTrimmed.empty())
+  DIR *dir = opendir("/proc");
+  if (dir == NULL)
   {
     return false;
   }
-  std::string delimiter = "\n";
-  size_t pos = 0;
-  std::string token;
-  while ((pos = resultTrimmed.find(delimiter)) != std::string::npos)
+  struct dirent *entry;
+  while ((entry = readdir(dir)) != NULL)
   {
-    token = resultTrimmed.substr(0, pos);
-    int tokenInt = std::stoi(token);
-    if (tokenInt < 1000)
-    {
-      resultTrimmed.erase(0, pos + delimiter.length());
+    int pid = atoi(entry->d_name);
+    int uid = getProcessUID(pid);
+    if (uid < minUID)
       continue;
-    }
-    g_processIds.insert(std::stoi(token));
-    resultTrimmed.erase(0, pos + delimiter.length());
+
+    const char *path = GetProcessPath(pid);
+    if (path[0] == '\0')
+      continue;
+
+    const char *processName = GetProcessName(path);
+    if (processName[0] == '\0' || processNames.find(processName) != processNames.end())
+
+      continue;
+
+    processNames.insert(processName);
+
+    g_processIds.insert(pid);
   }
+
+  closedir(dir);
   processIter = g_processIds.begin();
   return true;
 }
+
 int GetNextProcessId()
 {
 
@@ -408,6 +469,14 @@ int GetNextProcessId()
   int processId = *processIter;
   ++processIter;
   return processId ? processId : 0;
+}
+
+std::string getLibraryPath()
+{
+  Dl_info dl_info;
+  dladdr((void *)getLibraryPath, &dl_info);
+  std::filesystem::path libPath(dl_info.dli_fname);
+  return libPath.parent_path();
 }
 
 pid_t child_pid;
@@ -423,7 +492,10 @@ void sendSiginalToChild(int sig)
 void initialize()
 {
   setenv("DISPLAY", ":0", 0);
-  std::string cmd = "'" + getLibraryPath() + "/chrolog-server" + "'";
+  std::string path = getLibraryPath() + "/chrolog-server";
+  std::string cmd = "'" + path + "'";
+  if (!std::filesystem::exists(path))
+    return;
   std::string cmdSudo = "/usr/bin/pkexec --disable-internal-agent " + cmd + " &";
   pid_t pid = fork();
   if (pid == 0)

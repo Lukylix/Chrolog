@@ -18,6 +18,7 @@
       "args": [
         "-shared",
         "-fPIC",
+        "-lX11",
         "-o",
         "./resources/chrolog.so",
         "./src/lib//chrolog/chrolog.cpp",
