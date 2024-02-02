@@ -416,8 +416,8 @@ char **GetProcessInfos(int pid)
   strcpy(processName, processNameConst);
 
   char **infos = new char *[2];
-  infos[0] = processPath;
-  infos[1] = processName;
+  infos[0] = processName;
+  infos[1] = processPath;
   return infos;
 }
 

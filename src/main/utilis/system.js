@@ -215,6 +215,8 @@ const addProcessToFetch = (pid) => {
   enqueueProcess(pid)
 }
 
+let processCount = 0
+
 export const getProcessesListener = async () => {
   if (lastProcessFetchTime + 1000 > Date.now() || !isChrologLoaded) return
   lastProcessFetchTime = Date.now()
@@ -243,13 +245,6 @@ export const getProcessesListener = async () => {
   } while (pid > 0)
 }
 
-let processCount = 0
-let lastTimeFetchingProcessCount = 0
-
 export const getProcessCountListener = async () => {
-  if (lastTimeFetchingProcessCount + 1000 > Date.now() || processes.length > 0) return processCount
-  if (process.platform === 'linux') {
-    processCount = fs.readdirSync('/proc').filter((name) => !isNaN(Number(name))).length
-  }
   return processCount
 }

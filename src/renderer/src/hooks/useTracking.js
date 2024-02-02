@@ -29,10 +29,19 @@ import { effect } from '@preact/signals-react'
 const { ipcRenderer } = window.require('electron')
 
 let shouldSkipTrack = false
+let lastActiveApp = ''
+let lastActiveAppTrackTime = 0
 
 const track = async () => {
   if (!isTracking.value) return
-  const activeApp = await ipcRenderer.invoke('get-active-app')
+
+  const shouldFetchActiveApp = Date.now() - lastActiveAppTrackTime > 1000
+  if (shouldFetchActiveApp) lastActiveAppTrackTime = Date.now()
+
+  const activeApp = shouldFetchActiveApp
+    ? await ipcRenderer.invoke('get-active-app')
+    : lastActiveApp
+
   if (!activeApp) return
   const isBrowser = browserProcesses.value.find((browser) => activeApp.includes(browser))
   const isExcluedSite = sitesExclusions.value.find((site) => currentTab.value.includes(site))
@@ -60,7 +69,7 @@ const track = async () => {
 }
 
 const getProcessCount = async () => {
-  if (processCount.vlaue > 0) return
+  if (processCount.value > 0) return
   const count = await ipcRenderer.invoke('get-process-count')
   processCount.value = count * 2
 }
@@ -127,7 +136,7 @@ const useTracking = () => {
     let intervalId = null
     if (isTracking.value) {
       track()
-      intervalId = setInterval(track, 500)
+      intervalId = setInterval(track, 100)
       isTrackingRunning.value = true
     }
     return () => {
